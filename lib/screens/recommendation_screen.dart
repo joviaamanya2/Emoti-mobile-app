@@ -1,788 +1,534 @@
-// import 'package:emoti_app/screens/splash_screen.dart';
-// import 'package:flutter/material.dart';
-// import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-// import 'counselors_screen.dart'; 
-
-// // Import your four full screens
-// import 'videos_screen.dart';
-// import 'games_screen.dart';
-// import 'fitness_screen.dart';
-// import 'quotes_screen.dart';
-
-// class RecommendationScreen extends StatefulWidget {
-//   final String mood;
-//   final String emoji;
-//   final List<Color> gradient;
-
-//   const RecommendationScreen({
-//     super.key,
-//     required this.mood,
-//     required this.emoji,
-//     required this.gradient,
-//   });
-
-//   @override
-//   State<RecommendationScreen> createState() => _RecommendationScreenState();
-// }
-
-// class _RecommendationScreenState extends State<RecommendationScreen> {
-//   late YoutubePlayerController _videoController;
-//   late YoutubePlayerController _musicController;
-//   final List<String> _customTips = [];
-
-//   /// 🔹 Bottom Navigation State
-//   int _currentIndex = 1; // Start on Recommendation tab
-
-//   void _onBottomNavTap(int index) {
-//     if (index == 3) {
-//       Navigator.push(
-//         context,
-//         MaterialPageRoute(builder: (_) => const CounselorsScreen()),
-//       );
-//       return;
-//     }
-
-//     setState(() {
-//       _currentIndex = index;
-//     });
-//   }
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     final moodVideos = {
-//       'Calm': '2OEL4P1Rz04',
-//       'Happy': '3GwjfUFyY6M',
-//       'Stressed': 'inpok4MKVLM',
-//       'Angry': 'wzjWIxXBs_s',
-//       'Tired': '4pKly2JojMw',
-//       'Neutral': '6p_yaNFSYao',
-//       'Confused': 'v7AYKMP6rOE',
-//       'Lonely': '6z6vQqf2t2E',
-//     };
-
-//     final moodMusic = {
-//       'Calm': '5qap5aO4i9A',
-//       'Happy': 'ZM3KAw6qv94',
-//       'Stressed': 'kXYiU_JCYtU',
-//       'Angry': 'XmpYhx9FLk8',
-//       'Tired': '1vx8iUvfyCY',
-//       'Neutral': '6p_yaNFSYao',
-//     };
-
-//     final vid = moodVideos[widget.mood] ?? '2OEL4P1Rz04';
-//     final mus = moodMusic[widget.mood] ?? '5qap5aO4i9A';
-
-//     _videoController = YoutubePlayerController(
-//       initialVideoId: vid,
-//       flags: const YoutubePlayerFlags(autoPlay: false),
-//     );
-
-//     _musicController = YoutubePlayerController(
-//       initialVideoId: mus,
-//       flags: const YoutubePlayerFlags(autoPlay: false, loop: true),
-//     );
-//   }
-
-//   @override
-//   void dispose() {
-//     _videoController.dispose();
-//     _musicController.dispose();
-//     super.dispose();
-//   }
-
-//   List<String> _tipsForMood(String mood) {
-//     switch (mood) {
-//       case 'Calm':
-//         return ['Continue deep breaths (4-4-4)', 'Short mindful walk', 'Gratitude list (3 things)'];
-//       case 'Stressed':
-//         return ['Grounding 5-4-3-2-1', 'Box breathing 4-4-4', '5-min guided session'];
-//       case 'Happy':
-//         return ['Share with a friend', 'Short dance break', 'Gratitude journaling'];
-//       case 'Angry':
-//         return ['Physical release', 'Cooling breath', 'Write one small action'];
-//       case 'Tired':
-//         return ['Power nap (20min)', 'Hydrate + walk', 'Light stretching'];
-//       default:
-//         return ['Take 3 deep breaths', 'Step outside for a minute'];
-//     }
-//   }
-
-//   void _addTip() {
-//     String tip = '';
-//     showDialog(
-//       context: context,
-//       builder: (_) {
-//         return AlertDialog(
-//           title: const Text('Add Tip'),
-//           content: TextField(
-//             onChanged: (v) => tip = v,
-//             maxLines: 3,
-//           ),
-//           actions: [
-//             TextButton(
-//                 onPressed: () => Navigator.pop(context),
-//                 child: const Text('Cancel')),
-//             ElevatedButton(
-//               onPressed: () {
-//                 if (tip.trim().isNotEmpty) {
-//                   setState(() {
-//                     _customTips.insert(0, tip.trim());
-//                   });
-//                 }
-//                 Navigator.pop(context);
-//               },
-//               child: const Text('Add'),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-
-//   /// 🔹 TILES NAVIGATION METHODS
-//   void _showVideoList() {
-//     Navigator.push(context, MaterialPageRoute(builder: (_) => const VideosScreen()));
-//   }
-
-//   void _showGames() {
-//     Navigator.push(context, MaterialPageRoute(builder: (_) => const GamesScreen()));
-//   }
-
-//   void _showFitness() {
-//     Navigator.push(context, MaterialPageRoute(builder: (_) => const FitnessScreen()));
-//   }
-
-//   void _showQuote() {
-//     Navigator.push(context, MaterialPageRoute(builder: (_) => const QuotesScreen()));
-//   }
-
-//   /// 🔹 RECOMMENDATION TAB UI
-//   Widget _recommendationTab() {
-//     final tips = [..._tipsForMood(widget.mood), ..._customTips];
-
-//     return YoutubePlayerBuilder(
-//       player: YoutubePlayer(
-//         controller: _videoController,
-//         showVideoProgressIndicator: true,
-//       ),
-//       builder: (context, player) {
-//         return Container(
-//           decoration: BoxDecoration(
-//             gradient: LinearGradient(
-//               colors: widget.gradient,
-//               begin: Alignment.topLeft,
-//               end: Alignment.bottomRight,
-//             ),
-//           ),
-//           child: SafeArea(
-//             child: SingleChildScrollView(
-//               padding: const EdgeInsets.all(16),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   /// HEADER
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: Column(
-//                           crossAxisAlignment: CrossAxisAlignment.start,
-//                           children: [
-//                             Text(
-//                               widget.mood,
-//                               style: const TextStyle(
-//                                 fontSize: 22,
-//                                 fontWeight: FontWeight.bold,
-//                                 color: Colors.white,
-//                               ),
-//                             ),
-//                             const SizedBox(height: 6),
-//                             const Text(
-//                               "Personalized wellbeing suggestions",
-//                               style: TextStyle(color: Colors.white70),
-//                             )
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   /// TIPS
-//                   const Text(
-//                     "Top Tips",
-//                     style: TextStyle(
-//                         color: Colors.white,
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 18),
-//                   ),
-//                   const SizedBox(height: 8),
-
-//                   ...tips.map(
-//                     (t) => Container(
-//                       width: double.infinity,
-//                       padding: const EdgeInsets.all(12),
-//                       margin: const EdgeInsets.symmetric(vertical: 6),
-//                       decoration: BoxDecoration(
-//                         color: Colors.white.withOpacity(0.12),
-//                         borderRadius: BorderRadius.circular(12),
-//                       ),
-//                       child: Row(
-//                         children: [
-//                           const Icon(Icons.check_circle_outline,
-//                               color: Colors.white70),
-//                           const SizedBox(width: 10),
-//                           Expanded(
-//                               child: Text(t,
-//                                   style:
-//                                       const TextStyle(color: Colors.white))),
-//                         ],
-//                       ),
-//                     ),
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   /// VIDEO
-//                   const Text(
-//                     "Recommended Video",
-//                     style: TextStyle(
-//                         color: Colors.white,
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 18),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   ClipRRect(
-//                     borderRadius: BorderRadius.circular(12),
-//                     child: player,
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   /// MUSIC
-//                   const Text(
-//                     "Mood Music",
-//                     style: TextStyle(
-//                         color: Colors.white,
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 18),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   ClipRRect(
-//                     borderRadius: BorderRadius.circular(12),
-//                     child: YoutubePlayer(controller: _musicController),
-//                   ),
-
-//                   const SizedBox(height: 25),
-
-//                   /// TILES
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: _tile(
-//                             "Videos",
-//                             Icons.play_circle_fill,
-//                             Colors.deepPurpleAccent,
-//                             _showVideoList),
-//                       ),
-//                       const SizedBox(width: 12),
-//                       Expanded(
-//                         child:
-//                             _tile("Games", Icons.videogame_asset, Colors.teal, _showGames),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 12),
-
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: _tile("Fitness", Icons.fitness_center,
-//                             const Color.fromARGB(255, 16, 68, 5), _showFitness),
-//                       ),
-//                       const SizedBox(width: 12),
-//                       Expanded(
-//                         child: _tile("Quote", Icons.format_quote, Colors.indigo, _showQuote),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 30),
-
-//                   /// BACK + SAVE
-//                   Row(
-//                     children: [
-//                       ElevatedButton.icon(
-//                         onPressed: () => Navigator.pop(context),
-//                         icon: const Icon(Icons.arrow_back),
-//                         label: const Text("Back"),
-//                       ),
-//                       const SizedBox(width: 12),
-//                       ElevatedButton.icon(
-//                         onPressed: _addTip,
-//                         label: const Text("More"),
-//                       ),
-//                       const Spacer(),
-                      
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         );
-//       },
-//     );
-//   }
-
-//   Widget _tile(String title, IconData icon, Color color, Function() onTap) {
-//     return InkWell(
-//       onTap: onTap,
-//       child: Container(
-//         height: 95,
-//         padding: const EdgeInsets.all(12),
-//         decoration: BoxDecoration(
-//           gradient: LinearGradient(
-//             colors: [
-//               color.withOpacity(0.95),
-//               color.withOpacity(0.75),
-//             ],
-//           ),
-//           borderRadius: BorderRadius.circular(12),
-//         ),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Icon(icon, color: Colors.white, size: 28),
-//             const Spacer(),
-//             Text(
-//               title,
-//               style: const TextStyle(
-//                   color: Colors.white, fontWeight: FontWeight.bold),
-//             ),
-//             const SizedBox(height: 4),
-//             const Text(
-//               "Open suggestions",
-//               style: TextStyle(color: Colors.white70, fontSize: 12),
-//             )
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final tabs = [
-//       const SplashScreen(),
-//       _recommendationTab(),
-//       _recommendationTab(),
-//     ];
-
-//     return Scaffold(
-//       body: tabs[_currentIndex],
-//       bottomNavigationBar: BottomNavigationBar(
-//         currentIndex: _currentIndex,
-//         onTap: _onBottomNavTap,
-//         type: BottomNavigationBarType.fixed,
-//         selectedItemColor: Colors.green,
-//         unselectedItemColor: Colors.grey,
-//         items: const [
-//           BottomNavigationBarItem(
-//               icon: Icon(Icons.home_outlined),
-//               activeIcon: Icon(Icons.home),
-//               label: 'Home'),
-//           BottomNavigationBarItem(
-//               icon: Icon(Icons.lightbulb_outline),
-//               activeIcon: Icon(Icons.lightbulb),
-//               label: 'Recommendation'),
-//           BottomNavigationBarItem(
-//               icon: Icon(Icons.bar_chart_outlined),
-//               activeIcon: Icon(Icons.bar_chart),
-//               label: 'Activity'),
-//           BottomNavigationBarItem(
-//               icon: Icon(Icons.people_outline),
-//               activeIcon: Icon(Icons.people),
-//               label: 'Counselors'),
-//         ],
-//       ),
-//     );
-//   }
-// }
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'counselors_screen.dart';
-import 'videos_screen.dart';
-import 'games_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// ✅ IMPORT YOUR REAL SCREENS HERE
+import 'boost_focus.dart';
+import 'reduce_stress.dart';
+import 'improve_sleep.dart';
 import 'fitness_screen.dart';
-import 'quotes_screen.dart';
-import 'splash_screen.dart';
+import 'feel_happier.dart';
+import 'healthy_habits.dart';
+import '../screens/counselors_screen.dart';
+import '../screens/settings.dart';
 
-class RecommendationScreen extends StatefulWidget {
-  final String mood;
-  final String emoji;
-  final List<Color> gradient;
-
-  const RecommendationScreen({
-    super.key,
-    required this.mood,
-    required this.emoji,
-    required this.gradient,
-  });
+class RecommendationsScreen extends StatefulWidget {
+  final String? mood;
+  const RecommendationsScreen({super.key, this.mood});
 
   @override
-  State<RecommendationScreen> createState() => _RecommendationScreenState();
+  State<RecommendationsScreen> createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationScreenState extends State<RecommendationScreen>
-    with SingleTickerProviderStateMixin {
-  late YoutubePlayerController _videoController;
-  late YoutubePlayerController _musicController;
-  final List<String> _customTips = [];
+class _RecommendationsScreenState extends State<RecommendationsScreen> {
+  int _selectedIndex = 0;
 
-  int _currentIndex = 1;
-
-  void _onBottomNavTap(int index) {
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CounselorsScreen()),
-      );
-      return;
-    }
-    setState(() {
-      _currentIndex = index;
-    });
-  }
+  late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-
-    final moodVideos = {
-      'Calm': '2OEL4P1Rz04',
-      'Happy': '3GwjfUFyY6M',
-      'Stressed': 'inpok4MKVLM',
-      'Angry': 'wzjWIxXBs_s',
-      'Tired': '4pKly2JojMw',
-      'Neutral': '6p_yaNFSYao',
-      'Confused': 'v7AYKMP6rOE',
-      'Lonely': '6z6vQqf2t2E',
-    };
-
-    final moodMusic = {
-      'Calm': '5qap5aO4i9A',
-      'Happy': 'ZM3KAw6qv94',
-      'Stressed': 'kXYiU_JCYtU',
-      'Angry': 'XmpYhx9FLk8',
-      'Tired': '1vx8iUvfyCY',
-      'Neutral': '6p_yaNFSYao',
-    };
-
-    final vid = moodVideos[widget.mood] ?? '2OEL4P1Rz04';
-    final mus = moodMusic[widget.mood] ?? '5qap5aO4i9A';
-
-    _videoController = YoutubePlayerController(
-      initialVideoId: vid,
-      flags: const YoutubePlayerFlags(autoPlay: false),
-    );
-
-    _musicController = YoutubePlayerController(
-      initialVideoId: mus,
-      flags: const YoutubePlayerFlags(autoPlay: false, loop: true),
-    );
+    _buildPages();
   }
 
-  @override
-  void dispose() {
-    _videoController.dispose();
-    _musicController.dispose();
-    super.dispose();
+  void _buildPages() {
+    _pages = [
+      RecommendationsContent(mood: widget.mood),
+      const InsightsScreen(),
+      const SettingsScreen(),
+    ];
   }
 
-  List<String> _tipsForMood(String mood) {
-    switch (mood) {
-      case 'Calm':
-        return ['Continue deep breaths (4-4-4)', 'Short mindful walk', 'Gratitude list (3 things)'];
-      case 'Stressed':
-        return ['Grounding 5-4-3-2-1', 'Box breathing 4-4-4', '5-min guided session'];
-      case 'Happy':
-        return ['Share with a friend', 'Short dance break', 'Gratitude journaling'];
-      case 'Angry':
-        return ['Physical release', 'Cooling breath', 'Write one small action'];
-      case 'Tired':
-        return ['Power nap (20min)', 'Hydrate + walk', 'Light stretching'];
-      default:
-        return ['Take 3 deep breaths', 'Step outside for a minute'];
-    }
-  }
-
-  /// Tiles Navigation
-  void _showVideoList() => Navigator.push(context, MaterialPageRoute(builder: (_) => const VideosScreen()));
-  void _showGames() => Navigator.push(context, MaterialPageRoute(builder: (_) => const GamesScreen()));
-  void _showFitness() => Navigator.push(context, MaterialPageRoute(builder: (_) => const FitnessScreen()));
-  void _showQuote() => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuotesScreen()));
-
-  Widget _recommendationTab() {
-    final tips = [..._tipsForMood(widget.mood), ..._customTips];
-
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: _videoController,
-        showVideoProgressIndicator: true,
-      ),
-      builder: (context, player) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: widget.gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  /// HEADER
-                  Row(
-                    children: [
-                      Text(widget.emoji, style: const TextStyle(fontSize: 40)),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.mood,
-                              style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
-                          const SizedBox(height: 4),
-                          const Text("Personalized wellbeing suggestions",
-                              style: TextStyle(color: Colors.white70)),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// TIPS
-                  const Text("Top Tips",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-                  const SizedBox(height: 12),
-
-                  ...tips.map(
-                    (t) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.check_circle_outline, color: Colors.white70),
-                                const SizedBox(width: 12),
-                                Expanded(child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 16))),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// VIDEO
-                  const Text("Recommended Video",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: player,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// MUSIC
-                  const Text("Mood Music",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: YoutubePlayer(controller: _musicController),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  /// TILES
-                  Row(
-                    children: [
-                      Expanded(child: _tile("Videos", Icons.play_circle_fill, Colors.deepPurpleAccent, _showVideoList)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _tile("Games", Icons.videogame_asset, Colors.teal, _showGames)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _tile("Fitness", Icons.fitness_center, Colors.orange, _showFitness)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _tile("Quote", Icons.format_quote, Colors.indigo, _showQuote)),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// BACK + MORE
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text("Back"),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 243, 239, 239)),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MoreTipsScreen(
-                                customTips: _customTips,
-                                defaultTips: _tipsForMood(widget.mood),
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.more_horiz),
-                        label: const Text("More"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 239, 238, 241),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _tile(String title, IconData icon, Color color, Function() onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 100,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [color.withOpacity(0.95), color.withOpacity(0.75)]),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6, offset: const Offset(0, 3))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const Spacer(),
-            Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text("Open suggestions", style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
-        ),
-      ),
-    );
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [const SplashScreen(), _recommendationTab(), _recommendationTab()];
+    final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
+
     return Scaffold(
-      body: tabs[_currentIndex],
+      backgroundColor: const Color(0xFFF9F8F6), // Match app background
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Recommendations',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _pages[_selectedIndex],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CounselorsScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryGreen,
+                  elevation: 2,
+                  shadowColor: kPrimaryGreen.withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Talk to a Counselor',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onBottomNavTap,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.green,
+        currentIndex: _selectedIndex,
+        selectedItemColor: kPrimaryGreen,
         unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        backgroundColor: Colors.white,
+        elevation: 10,
+        type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), activeIcon: Icon(Icons.lightbulb), label: 'Recommendation'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Activity'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Counselors'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Insights'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
   }
 }
 
-/// MORE TIPS SCREEN
-class MoreTipsScreen extends StatelessWidget {
-  final List<String> customTips;
-  final List<String> defaultTips;
+// -------------------- RECOMMENDATIONS CONTENT --------------------
+class RecommendationsContent extends StatelessWidget {
+  final String? mood;
+   RecommendationsContent({super.key, this.mood});
 
-  const MoreTipsScreen({
-    super.key,
-    required this.customTips,
-    required this.defaultTips,
-  });
+  final Map<String, Map<String, String>> _recommendationData = {
+    'Boost Focus': {
+      'image':
+          'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80'
+    },
+    'Reduce Stress': {
+      'image':
+          'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80'
+    },
+    'Improve Sleep': {
+      'image':
+          'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'
+    },
+    'Fitness': {
+      'image':
+          'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80'
+    },
+    'Feel Happy': {
+      'image':
+          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fit=crop&w=80&h=80'
+    },
+    'Health Habits': {
+      'image':
+          'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80'
+    },
+  };
 
   @override
   Widget build(BuildContext context) {
-    final tips = [...defaultTips, ...customTips];
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Tips'),
-        backgroundColor: Colors.deepPurpleAccent,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: tips.length,
-        itemBuilder: (_, index) {
-          return Card(
-            elevation: 5,
-            shadowColor: Colors.black45,
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: ListTile(
-              leading: const Icon(Icons.check_circle_outline, color: Colors.deepPurpleAccent),
-              title: Text(tips[index], style: const TextStyle(fontWeight: FontWeight.w500)),
+    final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (mood != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: kPrimaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Mood: $mood',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryGreen),
+              ),
             ),
-          );
-        },
+
+          const SizedBox(height: 10),
+          const Text(
+            'For You',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+
+          /// ✅ Dynamic Vertical Cards
+          ..._recommendationData.entries.map((entry) {
+            return _buildRecommendationCard(
+              context,
+              entry.key,
+              entry.value['image']!,
+            );
+          }).toList(),
+
+          const SizedBox(height: 30),
+          const Text(
+            'Top Tips',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          _tipCard('Daily Mindfulness',
+              'Take 10 minutes to practice mindfulness breathing.'),
+          _tipCard('Relaxing Tonight',
+              'Try light stretching or calming music before sleep.'),
+          _tipCard('Stay Hydrated',
+              'Drink at least 8 glasses of water to maintain energy.'),
+
+          const SizedBox(height: 30),
+          const Text(
+            'Mood Music',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+
+          SizedBox(
+            height: 140,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _musicCard(
+                  'Lo-Fi Chill',
+                  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80',
+                  'https://www.youtube.com/watch?v=5qap5aO4i9A',
+                ),
+                _musicCard(
+                  'Nature Sounds',
+                  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?fit=crop&w=80&h=80',
+                  'https://www.youtube.com/watch?v=DWcJFNfaw9c',
+                ),
+                _musicCard(
+                  'Calm Piano',
+                  'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=800&q=80',
+                  'https://www.youtube.com/watch?v=lFcSrYw-ARY',
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 20), // Bottom spacing
+        ],
+      ),
+    );
+  }
+
+  // -------------------- RECOMMENDATION CARD --------------------
+  Widget _buildRecommendationCard(
+      BuildContext context, String title, String imageUrl) {
+    return GestureDetector(
+      onTap: () {
+        Widget screen;
+        switch (title) {
+          case 'Boost Focus':
+            screen = const FocusScreen();
+            break;
+          case 'Reduce Stress':
+            screen = const ReduceStressScreen();
+            break;
+          case 'Improve Sleep':
+            screen = const SleepScreen();
+            break;
+          case 'Fitness':
+            screen = const FitnessScreen();
+            break;
+          case 'Feel Happy':
+            screen = const FeelHappierScreen();
+            break;
+          case 'Health Habits':
+            screen = const HealthHabitsScreen();
+            break;
+          default:
+            screen = const FocusScreen();
+        }
+        Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+              child: Image.network(
+                imageUrl,
+                width: 90,
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 90,
+                    height: 90,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Tap to explore',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Icon(
+                Icons.chevron_right,
+                color: Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------- TIP CARD --------------------
+  Widget _tipCard(String title, String description) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 99, 235, 104).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lightbulb_outline_rounded,
+              color: Color.fromARGB(255, 99, 235, 104),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------- MUSIC CARD --------------------
+  Widget _musicCard(String title, String imageUrl, String musicUrl) {
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.parse(musicUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        width: 110,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: 90,
+                width: 110,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 90,
+                    width: 110,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.music_note, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// -------------------- INSIGHTS SCREEN --------------------
+class InsightsScreen extends StatelessWidget {
+  const InsightsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your Insights',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 20),
+          
+          _insightCard(
+            'Mindfulness Progress',
+            'You have meditated 5 times this week. Great job!',
+            Icons.self_improvement,
+            Colors.blue,
+          ),
+          _insightCard(
+            'Mood Trends',
+            'Your mood has improved over the past 7 days.',
+            Icons.trending_up,
+            Colors.green,
+          ),
+          _insightCard(
+            'Sleep Quality',
+            'Average sleep duration: 7 hours 15 minutes.',
+            Icons.bedtime,
+            Colors.purple,
+          ),
+          _insightCard(
+            'Fitness Activity',
+            'You completed 3 workout sessions this week.',
+            Icons.fitness_center,
+            Colors.orange,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insightCard(String title, String description, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

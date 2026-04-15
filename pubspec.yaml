@@ -10,14 +10,27 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  # http: ^0.13.6
+  video_player: ^2.6.1
+  chewie: ^1.5.2
+  intl: ^0.18.1
+  url_launcher: ^6.3.2
+  image_picker: ^1.1.2
+  firebase_storage: ^12.1.3
+  firebase_core: ^3.6.0
+  
+  
 
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.2
   google_fonts: ^6.2.1
   provider: ^6.1.2
+  share_plus: ^7.2.2
 
   # 100% Flutter 3.22 compatible
-  fl_chart: ^0.65.0
+  fl_chart: ^0.66.0
 
   # For YouTube videos
   youtube_player_flutter: ^9.1.3
@@ -35,16 +48,24 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/health.png
+    - assets/images/onboard2.png
     - assets/images/onboard1.jpg
-    - assets/images/Get_started.png
+    - assets/images/onboard3.png
     - assets/images/emoti connect.png
     - assets/images/password.png
-    - assets/images/female.jpg
-    - assets/images/male.jpg
     - assets/images/confused.png
     - assets/images/excited.png
     - assets/images/lonely.png
     - assets/images/sad.png
     - assets/images/tired.png
     - assets/images/stressed.png
+    - assets/images/support.png
+    - assets/images/emotions.png
+    - assets/images/daily.png
+    - assets/images/copying.png
+    - assets/images/consequences.png
+    - assets/images/challenges.png
+    - assets/images/female.png
+    - assets/images/male.png
+    - assets/images/meditation.png
+

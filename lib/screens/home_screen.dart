@@ -1,157 +1,139 @@
 import 'package:flutter/material.dart';
-import 'emotion_dashboard.dart';
+import 'emotion_dashboard.dart'; // Ensure this points to HomeContent
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class GenderSelectionScreen extends StatefulWidget {
+  // ADDED: Accept userName from Auth Screen
+  final String userName;
+  
+  const GenderSelectionScreen({super.key, required this.userName});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<GenderSelectionScreen> createState() => _GenderSelectionScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  String selectedGender = "";
-  late AnimationController _controller;
-  late Animation<double> _fade;
+class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
+  String? selectedGender;
+  
+  final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _controller.forward();
+  void _navigateToDashboard() {
+    if (selectedGender != null) {
+      // UPDATED: Pass userName and selectedGender to HomeContent
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeContent(
+          userName: widget.userName,
+          gender: selectedGender!,
+        )), 
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select an option to continue")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F5E9),
+      backgroundColor: const Color(0xFFF9F8F6),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE8F5E9),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
-        title: const Text(
-          "Emoti",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w700,
-            fontSize: 22,
-          ),
-        ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.close, color: Colors.black),
-          ),
-        ],
       ),
-      body: FadeTransition(
-        opacity: _fade,
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
 
-              const Text(
-                "Choose your\ngender",
-                textAlign: TextAlign.center,
+              // Title
+              Text(
+                "Choose your gender",
                 style: TextStyle(
                   fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A2E1A),
+                  fontFamily: 'Serif',
                 ),
               ),
-
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
+              Text(
+                "Help us personalize your Emoti experience",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 50),
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildGenderCard(
                     label: "Female",
-                    imagePath: "assets/images/female.jpg",
-                    isSelected: selectedGender == "female",
-                    onTap: () {
-                      setState(() => selectedGender = "female");
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EmotionDashboard(),
-                        ),
-                      );
-                    },
+                    icon: Icons.woman_outlined,
                   ),
                   _buildGenderCard(
                     label: "Male",
-                    imagePath: "assets/images/male.jpg",
-                    isSelected: selectedGender == "male",
-                    onTap: () {
-                      setState(() => selectedGender = "male");
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EmotionDashboard(),
-                        ),
-                      );
-                    },
+                    icon: Icons.man_outlined,
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 24),
+
+              Center(
+                child: _buildSmallOption("I'd rather not say"),
               ),
 
               const Spacer(),
 
-              GestureDetector(
-                onTap: () {
-                  if (selectedGender.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EmotionDashboard(),
+              SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: selectedGender != null ? _navigateToDashboard : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryGreen,
+                    disabledBackgroundColor: Colors.grey[300],
+                    elevation: selectedGender != null ? 4 : 0,
+                    shadowColor: kPrimaryGreen.withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Next",
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: selectedGender != null
+                              ? Colors.black
+                              : Colors.grey[500],
+                        ),
                       ),
-                    );
-                  }
-                },
-                child: Container(
-                  width: 65,
-                  height: 65,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Colors.green, Colors.lightGreen],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withOpacity(0.4),
-                        blurRadius: 20,
+                      const SizedBox(width: 10),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        color: selectedGender != null
+                            ? Colors.black
+                            : Colors.grey[500],
+                        size: 20,
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.arrow_forward,
-                      color: Colors.white, size: 30),
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _progressDot(active: true),
-                  _progressDot(active: false),
-                  _progressDot(active: false),
-                  _progressDot(active: false),
-                ],
-              ),
-
               const SizedBox(height: 30),
             ],
           ),
@@ -160,106 +142,91 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // 🔥 UPDATED CARD WITH GREEN HOVER & CLICK EFFECT
-  Widget _buildGenderCard({
-    required String label,
-    required String imagePath,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(25),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(25),
-        hoverColor: Colors.green.withOpacity(0.12),
-        splashColor: Colors.green.withOpacity(0.25),
-        highlightColor: Colors.green.withOpacity(0.15),
-        overlayColor: MaterialStateProperty.resolveWith<Color?>(
-          (states) {
-            if (states.contains(MaterialState.hovered)) {
-              return Colors.green.withOpacity(0.12);
-            }
-            if (states.contains(MaterialState.pressed)) {
-              return Colors.green.withOpacity(0.25);
-            }
-            return null;
-          },
+  Widget _buildGenderCard({required String label, required IconData icon}) {
+    bool isSelected = selectedGender == label;
+    return GestureDetector(
+      onTap: () => setState(() => selectedGender = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 140,
+        padding: const EdgeInsets.symmetric(vertical: 25),
+        decoration: BoxDecoration(
+          color: isSelected ? kPrimaryGreen.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ],
+          border: Border.all(
+            color: isSelected ? kPrimaryGreen : Colors.grey.withOpacity(0.2),
+            width: isSelected ? 2 : 1,
+          ),
         ),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          width: 155,
-          height: 260,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-            gradient: isSelected
-                ? const LinearGradient(
-                    colors: [Colors.green, Colors.lightGreen],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Colors.white, Colors.grey],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            boxShadow: [
-              BoxShadow(
+        child: Column(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.green.withOpacity(0.4)
-                    : Colors.black12,
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              )
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 95,
-                height: 95,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? Colors.white : Colors.black12,
-                    width: 3,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                    ? kPrimaryGreen.withOpacity(0.15)
+                    : Colors.grey[100],
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 18),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 20,
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Icon(
+                icon,
+                size: 40,
+                color: isSelected ? kPrimaryGreen : Colors.grey[600],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isSelected ? kPrimaryGreen : Colors.grey[800],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _progressDot({required bool active}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      width: active ? 30 : 20,
-      height: 6,
-      decoration: BoxDecoration(
-        color: active ? Colors.green : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildSmallOption(String label) {
+    bool isSelected = selectedGender == label;
+    return GestureDetector(
+      onTap: () => setState(() => selectedGender = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isSelected ? kPrimaryGreen : Colors.grey.withOpacity(0.2),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [
+             BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isSelected ? kPrimaryGreen : Colors.grey[700],
+            fontSize: 15,
+          ),
+        ),
       ),
     );
   }
