@@ -1,39 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:emoti_app/services/auth_service.dart';
+import 'package:emoti_app/screens/auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userName;
+  final String? userEmail;
+  final String? userGender;
+  final String? userRole;
+
+  const ProfileScreen({
+    super.key,
+    this.userName,
+    this.userEmail,
+    this.userGender,
+    this.userRole,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Theme Color
   final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
+  final ApiService _authService = ApiService();
 
-  // Contact Info Constants
   final String supportEmail = "support@emoti.com";
   final String supportPhone = "+1 234 567 8900";
 
-  // User Data State
-  String userName = "Alex";
-  String userEmail = "alex@example.com";
-  String profileImage = "https://via.placeholder.com/150";
+  String userName = "";
+  String userEmail = "";
+  String userGender = "";
+  String userRole = "user";
+  String profileImage = "https://ui-avatars.com/api/?name=User&background=63eb68&color=fff&bold=true";
+  bool _isLoadingProfile = true;
 
-  // Controllers
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _currentPassController;
   late TextEditingController _newPassController;
+  late TextEditingController _confirmPassController;
 
   @override
   void initState() {
     super.initState();
+
+    userName = widget.userName ?? "User";
+    userEmail = widget.userEmail ?? "";
+    userGender = widget.userGender ?? "";
+    userRole = widget.userRole ?? "user";
+
+    profileImage = "https://ui-avatars.com/api/?name=${Uri.encodeComponent(userName)}&background=63eb68&color=fff&bold=true";
+
     _nameController = TextEditingController(text: userName);
     _emailController = TextEditingController(text: userEmail);
     _currentPassController = TextEditingController();
     _newPassController = TextEditingController();
+    _confirmPassController = TextEditingController();
+
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    try {
+      final result = await _authService.getUser();
+
+      if (mounted && result != null) {
+        final String? name = result['name'];
+        final String? email = result['email'];
+        final String? gender = result['gender'];
+        final String? role = result['role'];
+
+        setState(() {
+          if (name != null && name.isNotEmpty) userName = name;
+          if (email != null && email.isNotEmpty) userEmail = email;
+          if (gender != null && gender.isNotEmpty) userGender = gender;
+          if (role != null && role.isNotEmpty) userRole = role;
+
+          _nameController.text = userName;
+          _emailController.text = userEmail;
+
+          profileImage = "https://ui-avatars.com/api/?name=${Uri.encodeComponent(userName)}&background=63eb68&color=fff&bold=true";
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingProfile = false);
+      }
+    }
   }
 
   @override
@@ -42,10 +97,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController.dispose();
     _currentPassController.dispose();
     _newPassController.dispose();
+    _confirmPassController.dispose();
     super.dispose();
   }
 
-  // ================= HELP & SUPPORT =================
+  String get _roleDisplay {
+    switch (userRole.toLowerCase()) {
+      case 'admin':
+        return 'Admin';
+      case 'counselor':
+        return 'Counselor';
+      default:
+        return 'User';
+    }
+  }
+
+  IconData get _roleIcon {
+    switch (userRole.toLowerCase()) {
+      case 'admin':
+        return Icons.admin_panel_settings_rounded;
+      case 'counselor':
+        return Icons.psychology_rounded;
+      default:
+        return Icons.person_rounded;
+    }
+  }
+
+  Color get _roleColor {
+    switch (userRole.toLowerCase()) {
+      case 'admin':
+        return const Color(0xFFE53935);
+      case 'counselor':
+        return const Color(0xFF7C4DFF);
+      default:
+        return kPrimaryGreen;
+    }
+  }
+
+  String get _genderDisplay {
+    if (userGender.isEmpty) return '';
+    return userGender[0].toUpperCase() + userGender.substring(1).toLowerCase();
+  }
+
   void _showContactOptions() {
     showModalBottomSheet(
       context: context,
@@ -64,8 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const Divider(),
             const SizedBox(height: 10),
-            
-            // Email Option
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
@@ -79,8 +170,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _launchEmail();
               },
             ),
-            
-            // Phone Option
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
@@ -94,7 +183,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _launchPhone();
               },
             ),
-            
             const SizedBox(height: 20),
           ],
         ),
@@ -106,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: supportEmail,
-      query: 'subject=Support Request from Emoti App',
+      query: 'subject=Support Request from Emoti App&body=User: $userName ($userEmail)',
     );
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
@@ -132,7 +220,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ================= EDIT PROFILE =================
   void _showEditProfileSheet() {
     _nameController.text = userName;
     _emailController.text = userEmail;
@@ -141,123 +228,340 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          bool isSaving = false;
+
+          return Container(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Edit Profile", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Edit Profile", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: "Full Name",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: "Email Address",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isSaving ? null : () async {
+                        if (_nameController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Name cannot be empty")),
+                          );
+                          return;
+                        }
+                        if (_emailController.text.trim().isEmpty || !_emailController.text.contains('@')) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Enter a valid email")),
+                          );
+                          return;
+                        }
+
+                        setModalState(() => isSaving = true);
+
+                        try {
+                          final result = await _authService.updateProfile({
+                            "name": _nameController.text.trim(),
+                            "email": _emailController.text.trim(),
+                          });
+
+                          Navigator.pop(context);
+
+                          if (mounted) {
+                            final statusCode = result['statusCode'];
+                            final message = result['message'] ?? 'Profile updated';
+
+                            if (statusCode == 200 || statusCode == 201) {
+                              setState(() {
+                                userName = _nameController.text.trim();
+                                userEmail = _emailController.text.trim();
+                                profileImage = "https://ui-avatars.com/api/?name=${Uri.encodeComponent(userName)}&background=63eb68&color=fff&bold=true";
+                              });
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(message),
+                                  backgroundColor: kPrimaryGreen,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(message),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          Navigator.pop(context);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Failed to update profile. Check your connection."),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 4),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setModalState(() => isSaving = false);
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryGreen,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Text("Save Changes", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: "Email Address", border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      userName = _nameController.text;
-                      userEmail = _emailController.text;
-                    });
-                    Navigator.pop(context);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile updated")));
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryGreen, padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // ================= CHANGE PASSWORD =================
   void _showChangePasswordDialog() {
     _currentPassController.clear();
     _newPassController.clear();
+    _confirmPassController.clear();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Change Password"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: _currentPassController, obscureText: true, decoration: const InputDecoration(labelText: "Current Password", border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            TextField(controller: _newPassController, obscureText: true, decoration: const InputDecoration(labelText: "New Password", border: OutlineInputBorder())),
-          ],
-        ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          bool isUpdating = false;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text("Change Password"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _currentPassController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Current Password",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _newPassController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "New Password (min 8 chars)",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _confirmPassController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Confirm New Password",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: isUpdating ? null : () async {
+                  if (_currentPassController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Enter current password")),
+                    );
+                    return;
+                  }
+                  if (_newPassController.text.length < 8) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("New password must be at least 8 characters")),
+                    );
+                    return;
+                  }
+                  if (_newPassController.text != _confirmPassController.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("New passwords do not match")),
+                    );
+                    return;
+                  }
+
+                  setDialogState(() => isUpdating = true);
+
+                  try {
+                    final result = await _authService.changePassword({
+                      "current_password": _currentPassController.text,
+                      "password": _newPassController.text,
+                      "password_confirmation": _confirmPassController.text,
+                    });
+
+                    Navigator.pop(context);
+
+                    if (mounted) {
+                      final statusCode = result['statusCode'];
+                      final message = result['message'] ?? 'Password changed';
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(message),
+                          backgroundColor: statusCode == 200 ? kPrimaryGreen : Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    Navigator.pop(context);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                         SnackBar(
+                          content: Text("Failed to change password. Check your connection."),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          duration:  Duration(seconds: 4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                  } finally {
+                    if (mounted) {
+                      setDialogState(() => isUpdating = false);
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryGreen,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                ),
+                child: isUpdating
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text("Update"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Log Out"),
+        content: const Text("Are you sure you want to log out?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF63eb68)),
+                ),
+              );
+
+              try {
+                await _authService.logout();
+              } catch (e) {
+                debugPrint("Logout error: $e");
+              }
+
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed")));
+                // Use pushAndRemoveUntil instead of pushNamedAndRemoveUntil
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryGreen),
-            child: const Text("Update"),
+            child: const Text("Yes", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  // ================= UPLOAD PHOTO =================
-  void _showPhotoOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt), title: const Text("Take Photo"),
-              onTap: () { Navigator.pop(context); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Camera selected"))); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.image), title: const Text("Choose from Gallery"),
-              onTap: () { Navigator.pop(context); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gallery selected"))); },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= BUILD UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Changed background to white to match header
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: kPrimaryGreen,
         elevation: 0,
@@ -267,46 +571,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ================= WHITE PROFILE HEADER SECTION =================
-            // Clean white header, no card, blending with background
+      body: _isLoadingProfile
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF63eb68)))
+          : SingleChildScrollView(
+              child: Column(
+        children: [
             Container(
               width: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 30),
               child: Column(
                 children: [
-                  // Avatar with Camera Icon
-                  Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: NetworkImage(profileImage),
-                        backgroundColor: Colors.grey[200], 
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _showPhotoOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: kPrimaryGreen, // Green icon background
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                          ),
-                        ),
-                      )
-                    ],
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: NetworkImage(profileImage),
+                    backgroundColor: Colors.grey[200],
                   ),
                   const SizedBox(height: 16),
-                  
-                  // User Name (Black Text)
                   Text(
                     userName,
                     style: const TextStyle(
@@ -316,8 +597,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  
-                  // User Email (Grey Text)
                   Text(
                     userEmail,
                     style: const TextStyle(
@@ -325,9 +604,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.grey,
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _roleColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _roleColor.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_roleIcon, size: 14, color: _roleColor),
+                            const SizedBox(width: 5),
+                            Text(
+                              _roleDisplay,
+                              style: TextStyle(
+                                color: _roleColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_genderDisplay.isNotEmpty) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.wc_rounded, size: 14, color: Colors.blueGrey),
+                              const SizedBox(width: 5),
+                              Text(
+                                _genderDisplay,
+                                style: const TextStyle(
+                                  color: Colors.blueGrey,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 25),
-                  
-                  // Edit Profile Button (Green background)
                   SizedBox(
                     width: 200,
                     child: ElevatedButton(
@@ -345,9 +677,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-
-            // ================= MENU SECTION =================
-            // Slight grey background for settings area to differentiate
             Container(
               color: Colors.grey[50],
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -368,22 +697,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.logout,
                     title: "Log Out",
                     color: Colors.red,
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text("Log Out"),
-                          content: const Text("Are you sure?"),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-                            TextButton(
-                              onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
-                              child: const Text("Yes", style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    onTap: _handleLogout,
                   ),
                 ],
               ),

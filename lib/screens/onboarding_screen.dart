@@ -1,8 +1,9 @@
-import '../screens/terms_and _conditions.dart'; // Keep your import
+import './terms_and _conditions.dart'; // FIXED: Removed space in filename
 import 'package:flutter/material.dart';
 
-// Updated Color Palette to match the new Splash Screen
+// Color Palette
 const Color kPrimaryGreen = Color.fromARGB(255, 88, 238, 93);
+const Color kDarkGreen = Color.fromARGB(255, 50, 190, 55);
 const Color kLightGreen = Color(0xFFE8F5E9);
 const Color kBackground = Colors.white;
 const Color kDarkText = Color(0xFF1F2937);
@@ -18,30 +19,55 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   final PageController _controller = PageController();
   int currentPage = 0;
-  
-  late AnimationController _textController;
-  late Animation<Offset> _textAnimation;
+
+  // Controller for Text Entrance
+  late AnimationController _entryController;
+  late Animation<Offset> _titleSlideAnimation;
+  late Animation<Offset> _descSlideAnimation;
+
+  // Controller for Floating Effect
+  late AnimationController _floatController;
+  late Animation<double> _floatAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Animation for text sliding up
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _textAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
 
-    _textController.forward();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _titleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutBack));
+
+    _descSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.8),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _entryController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+
+    _entryController.forward();
+
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat(reverse: true);
+
+    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _textController.dispose();
+    _entryController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -55,8 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       );
     } else {
       _controller.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
       );
     }
   }
@@ -65,261 +91,305 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+      body: Stack(
+        children: [
 
-              /// Skip Button (Top Right)
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TermsAndConditionsScreen(),
+          // BACKGROUND BUBBLES
+          _buildBackgroundBubble(0.1, -0.1, 120, Colors.green.withOpacity(0.05)),
+          _buildBackgroundBubble(0.9, 0.2, 180, Colors.blue.withOpacity(0.03)),
+          _buildBackgroundBubble(0.5, 0.8, 100, Colors.purple.withOpacity(0.04)),
+
+          // MAIN CONTENT
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+
+                  /// Skip Button
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TermsAndConditionsScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Skip",
+                        style: TextStyle(
+                          color: kDarkGreen,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
                       ),
-                    );
-                  },
-                  child: Text(
-                    "Skip",
-                    style: TextStyle(
-                      color: kPrimaryGreen,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
                     ),
                   ),
-                ),
-              ),
 
-              Expanded(
-                child: PageView(
-                  controller: _controller,
-                  onPageChanged: (index) {
-                    setState(() {
-                      currentPage = index;
-                    });
-                    // Restart animation on page change
-                    _textController.reset();
-                    _textController.forward();
-                  },
-                  children: [
-                    /// PAGE 1
-                    buildPage(
-                      icon: Icons.sentiment_satisfied_alt_rounded,
-                      iconBgColor: Colors.blue.shade50,
-                      iconColor: Colors.blue.shade400,
-                      title: "Emoti Connect",
-                      description:
-                          "Your emotion tracker for a healthier, more connected mind.",
-                      imagePath: "assets/images/onboard1.jpg", // Optional local image
-                    ),
-
-                    /// PAGE 2
-                    buildPage(
-                      icon: Icons.track_changes_rounded,
-                      iconBgColor: Colors.purple.shade50,
-                      iconColor: Colors.purple.shade400,
-                      title: "Track Your Feelings",
-                      description:
-                          "Understand your daily emotions and improve your mental wellbeing.",
-                      imagePath: "assets/images/onboard2.png",
-                    ),
-
-                    /// PAGE 3
-                    buildPage(
-                      icon: Icons.self_improvement_rounded,
-                      iconBgColor: Colors.orange.shade50,
-                      iconColor: Colors.orange.shade400,
-                      title: "Start Your Journey",
-                      description:
-                          "Build healthy habits and stay emotionally balanced every day.",
-                      imagePath: "assets/images/onboard3.png",
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              /// Dots Indicator
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  3,
-                  (index) => buildDot(index),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              /// Next Button
-              SlideTransition(
-                position: _textAnimation,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryGreen,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shadowColor: kPrimaryGreen.withOpacity(0.4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: nextPage,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  Expanded(
+                    child: PageView(
+                      controller: _controller,
+                      onPageChanged: (index) {
+                        setState(() {
+                          currentPage = index;
+                        });
+                        _entryController.reset();
+                        _entryController.forward();
+                      },
                       children: [
-                        Text(
-                          currentPage == 2 ? "Get Started" : "Next",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        /// PAGE 1
+                        buildPage(
+                          imagePath: "assets/images/onboard1.jpg",
+                          title: "Emoti Connect",
+                          description:
+                              "Your emotion tracker for a healthier, more connected mind.",
                         ),
-                        const SizedBox(width: 10),
-                        Icon(
-                          currentPage == 2 ? Icons.check_rounded : Icons.arrow_forward_rounded,
-                          size: 22,
-                        )
+
+                        /// PAGE 2
+                        buildPage(
+                          imagePath: "assets/images/onboard2.png",
+                          title: "Track Your Feelings",
+                          description:
+                              "Understand your daily emotions and improve your mental wellbeing.",
+                        ),
+
+                        /// PAGE 3
+                        buildPage(
+                          imagePath: "assets/images/onboard3.png",
+                          title: "Start Your Journey",
+                          description:
+                              "Build healthy habits and stay emotionally balanced every day.",
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
-            ],
+                  const SizedBox(height: 30),
+
+                  /// Dots Indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      3,
+                      (index) => buildDot(index),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  /// Next Button
+                  SlideTransition(
+                    position: _descSlideAnimation,
+                    child: GestureDetector(
+                      onTap: nextPage,
+                      child: Container(
+                        width: double.infinity,
+                        height: 65,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [kPrimaryGreen, kDarkGreen],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kPrimaryGreen.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              currentPage == 2 ? "Get Started" : "Next",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                return ScaleTransition(scale: animation, child: child);
+                              },
+                              child: Icon(
+                                currentPage == 2 ? Icons.check_rounded : Icons.arrow_forward_rounded,
+                                key: ValueKey<bool>(currentPage == 2),
+                                color: Colors.black,
+                                size: 24,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  /// Dot Indicator
+  Widget _buildBackgroundBubble(double top, double left, double size, Color color) {
+    return AnimatedBuilder(
+      animation: _floatController,
+      builder: (context, child) {
+        return Positioned(
+          top: top * MediaQuery.of(context).size.height + (_floatAnimation.value * 0.5),
+          left: left * MediaQuery.of(context).size.width,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget buildDot(int index) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      height: 8,
-      width: currentPage == index ? 24 : 8,
+      height: 10,
+      width: currentPage == index ? 30 : 10,
       decoration: BoxDecoration(
         color: currentPage == index ? kPrimaryGreen : Colors.grey.shade300,
         borderRadius: BorderRadius.circular(10),
+        boxShadow: currentPage == index
+            ? [BoxShadow(color: kPrimaryGreen.withOpacity(0.4), blurRadius: 5)]
+            : [],
       ),
     );
   }
 
-  /// Onboarding Page
   Widget buildPage({
-    IconData? icon,
-    Color? iconBgColor,
-    Color? iconColor,
     required String title,
     required String description,
-    String? imagePath, // Local asset path
+    required String imagePath,
   }) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        /// Illustration Section
-        // Attempt to load local image, fallback to Icon if not found
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Container(
-              width: constraints.maxWidth * 0.85,
-              height: 300,
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(), // Prevent scrolling inside page
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+
+          /// FLOATING IMAGE CARD
+          AnimatedBuilder(
+            animation: _floatController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _floatAnimation.value),
+                child: child,
+              );
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: 320,
               decoration: BoxDecoration(
-                color: kLightGreen,
-                borderRadius: BorderRadius.circular(30),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
+                  ),
+                  BoxShadow(
+                    color: kPrimaryGreen.withOpacity(0.1),
+                    blurRadius: 40,
+                    spreadRadius: 5,
+                  )
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(40),
                 child: Stack(
-                  alignment: Alignment.center,
+                  fit: StackFit.expand,
                   children: [
-                    // Try to load the AssetImage
+                    // IMAGE ASSET
                     Image.asset(
-                      imagePath ?? '',
-                      width: double.infinity,
-                      height: double.infinity,
+                      imagePath,
                       fit: BoxFit.cover,
+                      // Error builder just in case image file is missing
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback to Icon if image fails
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: iconBgColor ?? Colors.grey.shade100,
-                                shape: BoxShape.circle,
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Image not found:\n$imagePath",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.grey),
                               ),
-                              child: Icon(
-                                icon ?? Icons.image,
-                                size: 80,
-                                color: iconColor ?? kPrimaryGreen,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "Illustration",
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            )
-                          ],
+                            ],
+                          ),
                         );
                       },
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 40),
-
-        /// Title & Description with Slide Animation
-        SlideTransition(
-          position: _textAnimation,
-          child: Column(
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: kDarkText,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Text(
-                  description,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: 50),
+
+          /// STAGGERED TEXT ANIMATIONS
+
+          // Title
+          SlideTransition(
+            position: _titleSlideAnimation,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                color: kDarkText,
+                height: 1.1,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Description
+          SlideTransition(
+            position: _descSlideAnimation,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

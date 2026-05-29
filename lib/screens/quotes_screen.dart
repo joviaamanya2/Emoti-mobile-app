@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart'; // For Clipboard
 import 'dart:math';
 
 // ---------------------------------------------------------
-// 1. DATA MODELS & SERVICE
+// 1. DATA MODELS & SERVICE (Mood Based)
 // ---------------------------------------------------------
 
 class Quote {
@@ -16,8 +17,7 @@ class Quote {
     required this.author,
     required this.relevantMoods,
   });
-  
-  // Helper to check equality based on text
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -28,121 +28,121 @@ class Quote {
 }
 
 class WisdomService {
-  // Expanded Quote Bank
+  // Expanded Quote Bank based on MOODS
   static final List<Quote> _quoteBank = [
-    // Great / Good
-    Quote(
-      text: "The more you praise and celebrate your life, the more there is in life to celebrate.",
-      author: "OPRAH WINFREY",
-      relevantMoods: ['Great', 'Good'],
-    ),
+    // HAPPY
     Quote(
       text: "Happiness is not something ready made. It comes from your own actions.",
       author: "DALAI LAMA",
-      relevantMoods: ['Great', 'Good'],
+      relevantMoods: ['Happy', 'Wisdom'],
     ),
     Quote(
-      text: "Act as if what you do makes a difference. It does.",
-      author: "WILLIAM JAMES",
-      relevantMoods: ['Great', 'Good'],
-    ),
-    Quote(
-      text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
-      author: "RALPH WALDO EMERSON",
-      relevantMoods: ['Great', 'Good'],
+      text: "The more you praise and celebrate your life, the more there is in life to celebrate.",
+      author: "OPRAH WINFREY",
+      relevantMoods: ['Happy'],
     ),
     
-    // Neutral
+    // LONELY
     Quote(
-      text: "This moment will pass.",
-      author: "MARCUS AURELIUS",
-      relevantMoods: ['Neutral'],
-    ),
-    Quote(
-      text: "The only way to do great work is to love what you do.",
-      author: "STEVE JOBS",
-      relevantMoods: ['Neutral'],
-    ),
-    Quote(
-      text: "Simplicity is the ultimate sophistication.",
-      author: "LEONARDO DA VINCI",
-      relevantMoods: ['Neutral'],
-    ),
-    Quote(
-      text: "Do what you can, with what you have, where you are.",
-      author: "THEODORE ROOSEVELT",
-      relevantMoods: ['Neutral'],
-    ),
-
-    // Low / Bad
-    Quote(
-      text: "Even the darkest night will end and the sun will rise.",
-      author: "VICTOR HUGO",
-      relevantMoods: ['Low', 'Bad'],
-    ),
-    Quote(
-      text: "You are allowed to be both a masterpiece and a work in progress simultaneously.",
-      author: "SOPHIA BUSH",
-      relevantMoods: ['Low', 'Bad'],
-    ),
-    Quote(
-      text: "Fall seven times, stand up eight.",
-      author: "JAPANESE PROVERB",
-      relevantMoods: ['Low', 'Bad'],
+      text: "You are never too old to set another goal or to dream a new dream.",
+      author: "C.S. LEWIS",
+      relevantMoods: ['Lonely', 'Wisdom'],
     ),
     Quote(
       text: "Rock bottom became the solid foundation on which I rebuilt my life.",
       author: "J.K. ROWLING",
-      relevantMoods: ['Low', 'Bad'],
+      relevantMoods: ['Lonely', 'Stressed'],
     ),
     Quote(
-      text: "Healing takes time, and asking for help is a courageous step.",
-      author: "MARISCHEL HERNANDEZ",
-      relevantMoods: ['Low', 'Bad'],
+      text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+      author: "RALPH WALDO EMERSON",
+      relevantMoods: ['Lonely'],
+    ),
+
+    // WISDOM
+    Quote(
+      text: "This moment will pass.",
+      author: "MARCUS AURELIUS",
+      relevantMoods: ['Wisdom', 'Stressed'], // Marcus Aurelius fits Wisdom/Stoicism
+    ),
+    Quote(
+      text: "We suffer more often in imagination than in reality.",
+      author: "SENECA",
+      relevantMoods: ['Wisdom', 'Stressed'],
+    ),
+    Quote(
+      text: "The only true wisdom is in knowing you know nothing.",
+      author: "SOCRATES",
+      relevantMoods: ['Wisdom'],
+    ),
+
+    // STRESSED
+    Quote(
+      text: "It is not stress that kills us, it is our reaction to it.",
+      author: "HANS SELYE",
+      relevantMoods: ['Stressed', 'Wisdom'],
+    ),
+    Quote(
+      text: "Do what you can, with what you have, where you are.",
+      author: "THEODORE ROOSEVELT",
+      relevantMoods: ['Stressed'],
+    ),
+
+    // NEUTRAL
+    Quote(
+      text: "Simplicity is the ultimate sophistication.",
+      author: "LEONARDO DA VINCI",
+      relevantMoods: ['Neutral', 'Wisdom'],
+    ),
+    Quote(
+      text: "Act as if what you do makes a difference. It does.",
+      author: "WILLIAM JAMES",
+      relevantMoods: ['Neutral', 'Happy'],
     ),
   ];
 
-  // In-memory storage for saved quotes (persists for the app session)
   static final Set<String> _savedQuotesText = {};
 
-  /// Check if a quote is saved
+  /// Get standard mood list for the UI
+  static List<String> getAvailableMoods() {
+    return ['All', 'Happy', 'Lonely', 'Wisdom', 'Stressed', 'Neutral'];
+  }
+
   static bool isQuoteSaved(Quote quote) {
     return _savedQuotesText.contains(quote.text);
   }
 
-  /// Toggle save state
   static bool toggleSaveQuote(Quote quote) {
     if (_savedQuotesText.contains(quote.text)) {
       _savedQuotesText.remove(quote.text);
-      return false; // Removed
+      return false;
     } else {
       _savedQuotesText.add(quote.text);
-      return true; // Added
+      return true;
     }
   }
 
-  /// Logic: Fetch quote based on Mood AND Date
+  /// Fetch quote based on Mood AND Date
   static Quote getDailyQuote(String? mood) {
     final now = DateTime.now();
-    
-    // 1. Determine Seed based on Date
-    // Using day of year ensures the quote changes daily but stays same for the whole day
     int dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
-    
-    // 2. Filter by Mood
-    String targetMood = mood ?? 'Neutral';
-    List<Quote> relevantQuotes = _quoteBank.where((q) => 
-      q.relevantMoods.contains(targetMood)
-    ).toList();
 
-    // Fallback if no specific mood quotes found
+    List<Quote> relevantQuotes = [];
+    
+    if (mood == null || mood == 'All') {
+      relevantQuotes = _quoteBank;
+    } else {
+      relevantQuotes = _quoteBank.where((q) => 
+        q.relevantMoods.contains(mood)
+      ).toList();
+    }
+
     if (relevantQuotes.isEmpty) {
       relevantQuotes = _quoteBank;
     }
 
-    // 3. Use the day of year + random seed based on date to pick a quote consistently for that day
-    // We add the mood length to the seed so different moods get different quotes on the same day
-    int seed = dayOfYear + targetMood.length;
+    // Seed ensures the quote stays the same for the day/mood combo
+    int seed = dayOfYear + (mood?.length ?? 0);
     Random random = Random(seed);
     
     return relevantQuotes[random.nextInt(relevantQuotes.length)];
@@ -150,7 +150,7 @@ class WisdomService {
 }
 
 // ---------------------------------------------------------
-// 2. REDESIGNED DAILY WISDOM SCREEN
+// 2. DAILY WISDOM SCREEN (TOP FILTERS & MOODS)
 // ---------------------------------------------------------
 
 class DailyWisdomScreen extends StatefulWidget {
@@ -164,20 +164,26 @@ class DailyWisdomScreen extends StatefulWidget {
 
 class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
   late Quote _currentQuote;
+  late String _selectedMood;
   bool _isSaved = false;
-  bool _isSharing = false;
+  
+  // Fixed list of moods for the UI
+  final List<String> _moods = WisdomService.getAvailableMoods();
 
   @override
   void initState() {
     super.initState();
+    // Default to passed mood or 'All'
+    _selectedMood = _moods.contains(widget.currentMood) 
+        ? widget.currentMood! 
+        : 'All';
     _loadDailyQuote();
   }
 
   void _loadDailyQuote() {
-    // Fetch based on mood and date
-    _currentQuote = WisdomService.getDailyQuote(widget.currentMood);
-    // Check if it's already saved
+    _currentQuote = WisdomService.getDailyQuote(_selectedMood);
     _isSaved = WisdomService.isQuoteSaved(_currentQuote);
+    if (mounted) setState(() {});
   }
 
   void _toggleSave() {
@@ -188,7 +194,7 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_isSaved ? "Saved to your collection" : "Removed from collection"),
+        content: Text(_isSaved ? "Saved to Favourites" : "Removed from Favourites"),
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -199,39 +205,51 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
 
   void _shareContent() {
     final String textToShare = '"${_currentQuote.text}" — ${_currentQuote.author}';
-    
-    // Use share_plus for actual sharing (WhatsApp, SMS, Twitter, etc.)
-    Share.share(
-      textToShare,
-      subject: 'Daily Wisdom from Wellness App',
+    Share.share(textToShare, subject: 'Daily Wisdom');
+  }
+
+  void _copyContent() {
+    Clipboard.setData(ClipboardData(text: '"${_currentQuote.text}" — ${_currentQuote.author}'));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Copied to clipboard"),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+      ),
     );
+  }
+
+  void _onMoodChanged(String newMood) {
+    setState(() {
+      _selectedMood = newMood;
+    });
+    _loadDailyQuote();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get today's date string
     final now = DateTime.now();
     final dateString = "${now.day} ${_getMonthName(now.month)}, ${now.year}";
 
     return Scaffold(
-      // Professional Wellness Background: Subtle Gradient
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF1F8E9), Color(0xFFFFFFFF)], // Very pale green to white
+            colors: [Color(0xFFF1F8E9), Color(0xFFFFFFFF)], 
           ),
         ),
         child: SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Custom App Bar
+              // --- Header ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                 child: Row(
                   children: [
-                    // Back Button
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -250,7 +268,6 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                       ),
                     ),
                     const Spacer(),
-                    // Date Display
                     Text(
                       dateString,
                       style: TextStyle(
@@ -264,9 +281,69 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                 ),
               ),
 
+              // --- TOP MOOD FILTERS (Moved from bottom) ---
+              // This is the new "Search" mechanism
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 14.0, bottom: 8.0),
+                      child: Text(
+                        "Choose categories?",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 50, // Fixed height for horizontal list
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        itemCount: _moods.length,
+                        itemBuilder: (context, index) {
+                          final mood = _moods[index];
+                          final isSelected = mood == _selectedMood;
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10.0),
+                            child: FilterChip(
+                              label: Text(mood),
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.white : Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                              selected: isSelected,
+                              onSelected: (bool selected) {
+                                if (selected) _onMoodChanged(mood);
+                              },
+                              selectedColor: const Color(0xFF4CAF50),
+                              checkmarkColor: Colors.white,
+                              backgroundColor: Colors.grey.shade100,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(
+                                  color: isSelected ? Colors.transparent : Colors.grey.shade300,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const Spacer(flex: 2),
 
-              // Quote Card
+              // --- Quote Card ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Container(
@@ -277,7 +354,7 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withOpacity(0.15),
                         blurRadius: 30,
                         offset: const Offset(0, 10),
                       )
@@ -285,7 +362,6 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Decorative Icon
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -299,8 +375,6 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                         ),
                       ),
                       const SizedBox(height: 30),
-
-                      // Quote Text
                       Text(
                         '"${_currentQuote.text}"',
                         textAlign: TextAlign.center,
@@ -309,13 +383,11 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
                           height: 1.6,
                           color: Color(0xFF2C3E50),
                           fontWeight: FontWeight.w600,
-                          fontFamily: 'Serif', // Elegant font
+                          fontFamily: 'Serif',
                           fontStyle: FontStyle.italic,
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // Author
                       Text(
                         _currentQuote.author,
                         textAlign: TextAlign.center,
@@ -333,19 +405,25 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
 
               const Spacer(flex: 3),
 
-              // Action Buttons
+              // --- Action Buttons (Save, Copy, Share) ---
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildActionCircle(
+                    _buildActionButton(
                       icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
                       color: _isSaved ? const Color(0xFF4CAF50) : Colors.grey,
                       label: "Save",
                       onTap: _toggleSave,
                     ),
-                    _buildActionCircle(
+                    _buildActionButton(
+                      icon: Icons.copy,
+                      color: Colors.black87,
+                      label: "Copy",
+                      onTap: _copyContent, // Added "More" feature
+                    ),
+                    _buildActionButton(
                       icon: Icons.share_rounded,
                       color: Colors.black87,
                       label: "Share",
@@ -361,7 +439,7 @@ class _DailyWisdomScreenState extends State<DailyWisdomScreen> {
     );
   }
 
-  Widget _buildActionCircle({
+  Widget _buildActionButton({
     required IconData icon,
     required Color color,
     required String label,

@@ -10,29 +10,36 @@ class TermsAndConditionsScreen extends StatefulWidget {
 
 class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
   bool _isAccepted = false;
+  bool _showError = false; // Tracking error state
 
   // Navigation function
   void _acceptAndContinue() {
     if (_isAccepted) {
+      setState(() {
+        _showError = false; // Clears error when accepted
+      });
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const AuthScreen()),
       );
+    } else {
+      setState(() {
+        _showError = true; // Shows error when not accepted
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Your requested Light Green Theme Color
     final Color kPrimaryGreen = const Color.fromARGB(255, 89, 219, 72);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F8F6), // Matches your light theme
+      backgroundColor: const Color(0xFFF9F8F6),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -45,20 +52,22 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
             Text(
               "Terms and Conditions",
               style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
                 color: const Color(0xFF1A2E1A),
-                fontFamily: 'Serif', // Fallback for Google Fonts
+                fontFamily: 'Serif',
+                height: 1.1,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             
             // Subtitle
             Text(
               "Please review these terms carefully before proceeding.",
               style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+                fontSize: 18,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
                 height: 1.4,
               ),
             ),
@@ -115,12 +124,12 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                       const SizedBox(height: 24),
                       Center(
                         child: Text(
-                          "LAST UPDATED: OCT 2023",
+                          "LAST UPDATED: FEB 2026",
                           style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[400],
+                            fontSize: 13,
+                            color: Colors.grey[500],
                             letterSpacing: 1.2,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -139,32 +148,41 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                   onTap: () {
                     setState(() {
                       _isAccepted = !_isAccepted;
+                      if (_isAccepted) {
+                        _showError = false; // Clears error when checked
+                      }
                     });
                   },
                   child: Row(
                     children: [
                       Container(
-                        width: 24,
-                        height: 24,
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
                           color: _isAccepted ? kPrimaryGreen : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: _isAccepted ? kPrimaryGreen : Colors.grey[400]!,
-                            width: 1.5,
+                            color: _showError
+                                ? const Color(0xFFDC2626) 
+                                : _isAccepted
+                                    ? kPrimaryGreen
+                                    : Colors.grey[400]!,
+                            width: 2.0,
                           ),
                         ),
                         child: _isAccepted 
-                            ? const Icon(Icons.check, size: 16, color: Colors.white)
+                            ? const Icon(Icons.check, size: 18, color: Colors.white)
                             : null,
                       ),
                       const SizedBox(width: 12),
                       Text(
                         "I agree to the terms",
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          color: _showError
+                              ? const Color(0xFFDC2626) 
+                              : Colors.grey[800],
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -173,21 +191,66 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
               ],
             ),
 
+            // RED ERROR MESSAGE - Animated
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              height: _showError ? 52 : 0,
+              padding: EdgeInsets.only(
+                top: _showError ? 12 : 0,
+                bottom: _showError ? 0 : 0,
+              ),
+              child: _showError
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2), 
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFECACA), 
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626), 
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              "Please check the box to agree",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFDC2626), 
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
             const SizedBox(height: 16),
 
             // Accept Button
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 64,
               child: ElevatedButton(
-                onPressed: _isAccepted ? _acceptAndContinue : null,
+                onPressed: _acceptAndContinue, // Always allow tap to show error
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryGreen, // Your requested green
+                  backgroundColor: _isAccepted ? kPrimaryGreen : Colors.grey[300],
                   disabledBackgroundColor: Colors.grey[300],
-                  elevation: _isAccepted ? 4 : 0,
+                  elevation: _isAccepted ? 6 : 0,
                   shadowColor: kPrimaryGreen.withOpacity(0.4),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
                 child: Row(
@@ -196,8 +259,8 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                     Text(
                       "Accept and Continue",
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
                         color: _isAccepted ? Colors.black : Colors.grey[500],
                       ),
                     ),
@@ -205,14 +268,14 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                     Icon(
                       Icons.arrow_forward_rounded, 
                       color: _isAccepted ? Colors.black : Colors.grey[500],
-                      size: 18,
+                      size: 22,
                     ),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 20), // Padding for bottom safe area
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -224,9 +287,10 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.bold,
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
         color: Color(0xFF1A2E1A),
+        height: 1.3,
       ),
     );
   }
@@ -236,9 +300,10 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14,
-        color: Colors.grey[700],
-        height: 1.6,
+        fontSize: 17,
+        color: Colors.grey[800],
+        height: 1.7,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

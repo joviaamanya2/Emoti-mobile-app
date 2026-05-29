@@ -4,25 +4,31 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
-  // FIX 1: Change Port from 18000 to 8000
-  // FIX 2: Use '10.0.2.2' for Mobile/Emulator. Use '127.0.0.1' only for Web/Chrome.
+  // ---------------- BASE URL ----------------
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8000/api'; 
-    } else {
-      // This is for Android Emulator or iPhone Simulator
-      return 'http://10.0.2.2:8000/api'; 
+    const apiBase = 'http://127.0.0.1:8001/api';
+    return apiBase;
+  }
+
+  static final storage = const FlutterSecureStorage();
+
+  // ---------------- SAFE JSON PARSER ----------------
+  dynamic _safeJson(String body) {
+    try {
+      return body.isNotEmpty ? jsonDecode(body) : {};
+    } catch (e) {
+      print("❌ JSON PARSE ERROR: $e");
+      print("RAW BODY: $body");
+      return {"raw": body};
     }
   }
-  
-  static final storage = FlutterSecureStorage();
 
-  // Helper method to handle errors consistently
+  // ---------------- ERROR HANDLER ----------------
   Map<String, dynamic> _handleError(dynamic e) {
-    print("API Error: $e");
+    print("❌ API ERROR: $e");
     return {
       'statusCode': 500,
-      'message': 'Failed to fetch data. Is the server running on 127.0.0.1:8000?',
+      'message': e.toString(),
       'data': null,
     };
   }
@@ -30,15 +36,23 @@ class ApiService {
   // ---------------- LOGIN ----------------
   Future<Map<String, dynamic>> login(Map<String, dynamic> data) async {
     try {
-      print("Attempting login to: $baseUrl/auth/login"); // Debug print
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 10));
+      final url = '$baseUrl/auth/login';
+      print("➡️ LOGIN URL: $url");
+      print("➡️ REQUEST: ${jsonEncode(data)}");
 
-      final decoded = jsonDecode(response.body);
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(data),
+      );
+
+      print("⬅️ STATUS: ${response.statusCode}");
+      print("⬅️ BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
 
       if (response.statusCode == 200 && decoded['token'] != null) {
         await storage.write(key: 'token', value: decoded['token']);
@@ -57,15 +71,24 @@ class ApiService {
   // ---------------- REGISTER ----------------
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) async {
     try {
-      print("Attempting register to: $baseUrl/auth/register"); // Debug print
+      final url = '$baseUrl/auth/register';
+
+      print("➡️ REGISTER URL: $url");
+      print("➡️ REQUEST: ${jsonEncode(data)}");
 
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 10));
+      );
 
-      final decoded = jsonDecode(response.body);
+      print("⬅️ STATUS: ${response.statusCode}");
+      print("⬅️ BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
 
       return {
         'statusCode': response.statusCode,
@@ -78,17 +101,26 @@ class ApiService {
   }
 
   // ---------------- FORGOT PASSWORD ----------------
+  // Sends a 6-digit verification code to the user's email
   Future<Map<String, dynamic>> forgotPassword(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 10));
-      final decoded = jsonDecode(response.body);
+      );
+
+      print("⬅️ FORGOT PASSWORD STATUS: ${response.statusCode}");
+      print("⬅️ FORGOT PASSWORD BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
+
       return {
         'statusCode': response.statusCode,
-        'message': decoded['message'] ?? 'Reset link sent.',
+        'message': decoded['message'] ?? 'Verification code sent.',
         'data': decoded,
       };
     } catch (e) {
@@ -96,15 +128,30 @@ class ApiService {
     }
   }
 
+  // ---------------- SEND VERIFICATION CODE ----------------
+  // Alias that calls the same forgot-password endpoint
+  // Used by the verification code flow
+  Future<Map<String, dynamic>> sendVerificationCode(Map<String, dynamic> data) async {
+    return await forgotPassword(data);
+  }
+
   // ---------------- VERIFY OTP ----------------
   Future<Map<String, dynamic>> verifyOtp(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/verify-otp'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 10));
-      final decoded = jsonDecode(response.body);
+      );
+
+      print("⬅️ VERIFY OTP STATUS: ${response.statusCode}");
+      print("⬅️ VERIFY OTP BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
+
       return {
         'statusCode': response.statusCode,
         'message': decoded['message'] ?? 'Code verified.',
@@ -115,15 +162,30 @@ class ApiService {
     }
   }
 
+  // ---------------- VERIFY CODE ----------------
+  // Alias that calls the same verify-otp endpoint
+  // Used by the verification code screen
+  Future<Map<String, dynamic>> verifyCode(Map<String, dynamic> data) async {
+    return await verifyOtp(data);
+  }
+
   // ---------------- RESET PASSWORD ----------------
   Future<Map<String, dynamic>> resetPassword(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 10));
-      final decoded = jsonDecode(response.body);
+      );
+
+      print("⬅️ RESET PASSWORD STATUS: ${response.statusCode}");
+      print("⬅️ RESET PASSWORD BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
+
       return {
         'statusCode': response.statusCode,
         'message': decoded['message'] ?? 'Password reset successful.',
@@ -138,25 +200,28 @@ class ApiService {
   Future<Map<String, dynamic>> getUser() async {
     try {
       final token = await storage.read(key: 'token');
-      if (token == null) throw Exception('User not logged in');
+
+      if (token == null) {
+        throw Exception('User not logged in');
+      }
 
       final response = await http.get(
         Uri.parse('$baseUrl/user'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 10));
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['user'] ?? data;
-      } else {
-        throw Exception('Failed to fetch user');
-      }
+      print("⬅️ USER STATUS: ${response.statusCode}");
+      print("⬅️ USER BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
+
+      return decoded;
     } catch (e) {
-      print("GetUser Error: $e");
-      rethrow;
+      return _handleError(e);
     }
   }
 
@@ -164,25 +229,106 @@ class ApiService {
   Future<List<dynamic>> getJournals() async {
     try {
       final token = await storage.read(key: 'token');
-      if (token == null) throw Exception('User not logged in');
+
+      if (token == null) {
+        throw Exception('User not logged in');
+      }
 
       final response = await http.get(
         Uri.parse('$baseUrl/journals'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 10));
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['data'] ?? data;
-      } else {
-        throw Exception('Failed to fetch journals');
-      }
+      print("⬅️ JOURNALS STATUS: ${response.statusCode}");
+      print("⬅️ JOURNALS BODY: ${response.body}");
+
+      final decoded = _safeJson(response.body);
+
+      return decoded['data'] ?? decoded;
     } catch (e) {
-      print("GetJournals Error: $e");
+      print("❌ GetJournals Error: $e");
       rethrow;
     }
   }
+    // ---------------- UPDATE PROFILE ----------------
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final token = await storage.read(key: 'token');
+      if (token == null) throw Exception('Not logged in');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/users/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      final decoded = _safeJson(response.body);
+
+      return {
+        'statusCode': response.statusCode,
+        'message': decoded['message'] ?? 'Profile updated.',
+        'data': decoded['data'] ?? decoded,
+      };
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // ---------------- CHANGE PASSWORD ----------------
+  Future<Map<String, dynamic>> changePassword(Map<String, dynamic> data) async {
+    try {
+      final token = await storage.read(key: 'token');
+      if (token == null) throw Exception('Not logged in');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      final decoded = _safeJson(response.body);
+
+      return {
+        'statusCode': response.statusCode,
+        'message': decoded['message'] ?? 'Password changed.',
+        'data' : decoded,
+      };
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // ---------------- LOGOUT ----------------
+  Future<void> logout() async {
+    try {
+      final token = await storage.read(key: 'token');
+      if (token != null) {
+        await http.post(
+          Uri.parse('$baseUrl/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+      await storage.delete(key: 'token');
+    } catch (e) {
+      // Still delete local token even if API call fails
+      await storage.delete(key: 'token');
+    }
+  }
+
 }

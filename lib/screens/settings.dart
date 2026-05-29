@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/settings_service.dart';
+import 'package:emoti_app/main.dart';
 
-// Removed the 'MyApp' wrapper and 'main()' function to prevent conflicts with your main app structure.
-
-/// ================= SETTINGS SCREEN =================
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -11,35 +10,48 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  /// USER DATA (Dynamic)
-  String userName = "Alex Johnson";
-  String email = "alex.johnson@example.com";
-  String fontLabel = "Medium";
-  String selectedIcon = "Default";
   
-  // Local state for the UI toggle (In a real app, use Provider/GetX for global state)
-  bool isDarkMode = false; 
+  // This listens to the global theme toggle from main.dart
+  @override
+  void initState() {
+    super.initState();
+    ThemeNotifier.isDarkMode.addListener(_themeListener);
+  }
 
-  /// ================= UI =================
+  @override
+  void dispose() {
+    ThemeNotifier.isDarkMode.removeListener(_themeListener);
+    super.dispose();
+  }
+
+  void _themeListener() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  // Quick shortcut to check dark mode status
+  bool get _isDark => ThemeNotifier.isDarkMode.value;
+
   @override
   Widget build(BuildContext context) {
-    // Check current brightness
-    final Brightness brightness = Theme.of(context).brightness;
-    // Using a static color for now to ensure visibility, or use Theme colors
-    final Color primaryColor = const Color.fromARGB(255, 99, 235, 104);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: brightness == Brightness.dark ? Colors.black : const Color(0xFFF2F2F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Settings',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.titleLarge?.color,
+          ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          icon: Icon(Icons.arrow_back_ios_new, color: theme.iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -49,7 +61,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildUserProfile(),
-
             const SizedBox(height: 30),
 
             _buildSectionHeader("ACCOUNT"),
@@ -62,8 +73,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDivider(),
               _buildSettingsTile(
                 icon: Icons.switch_account_outlined,
-                title: 'Switch Account',
-                onTap: _switchAccount,
+                title: 'Dark Mode',
+                trailing: Switch(
+                  value: _isDark,
+                  onChanged: (val) {
+                    ThemeNotifier.isDarkMode.value = val; 
+                    // Keep this line if SettingsProvider saves to local storage (SharedPreferences)
+                    // SettingsProvider.setDarkMode(val); 
+                  },
+                ),
               ),
               _buildDivider(),
               _buildSettingsTile(
@@ -84,17 +102,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionHeader("APPEARANCE"),
             _buildSettingsGroup([
               _buildSettingsTile(
-                icon: Icons.dark_mode_outlined,
-                title: 'Dark Mode',
-                // Visual toggle only. Global theme change requires state management (Provider/GetX)
+                icon: _isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                title: _isDark ? 'Switch to Light' : 'Switch to Dark',
                 trailing: Switch(
-                  value: isDarkMode,
-                  activeColor: primaryColor,
+                  value: _isDark,
                   onChanged: (val) {
-                    setState(() {
-                      isDarkMode = val;
-                    });
-                    // Ideally: Provider.of<ThemeProvider>(context, listen: false).toggleTheme(val);
+                    ThemeNotifier.isDarkMode.value = val;
                   },
                 ),
               ),
@@ -102,14 +115,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildSettingsTile(
                 icon: Icons.text_fields_rounded,
                 title: 'Font Size',
-                trailingText: fontLabel,
+                trailingText: SettingsProvider.fontScale.toStringAsFixed(1),
                 onTap: _chooseFontSize,
               ),
               _buildDivider(),
               _buildSettingsTile(
                 icon: Icons.apps_outlined,
                 title: 'App Icon',
-                trailingText: selectedIcon,
+                trailingText: SettingsProvider.appIcon,
                 onTap: _chooseAppIcon,
               ),
             ]),
@@ -132,7 +145,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Center(
               child: Text(
                 'Emoti App v1.0.0',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color ?? Colors.grey.shade500,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
@@ -141,35 +157,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// ================= PROFILE =================
+  // PROFILE
   Widget _buildUserProfile() {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           CircleAvatar(
             radius: 35,
-            backgroundColor: const Color.fromARGB(255, 99, 235, 104).withOpacity(0.2),
-            child: const Icon(Icons.person, size: 40, color: Color.fromARGB(255, 99, 235, 104)),
+            backgroundColor: const Color.fromARGB(255, 92, 198, 101).withOpacity(_isDark ? 0.2 : 0.1),
+            child: const Icon(
+              Icons.person,
+              size: 40,
+              color: Color(0xFF5CC6A9),
+            ),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(userName,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-              const SizedBox(height: 4),
-              Text(email, style: TextStyle(color: Colors.grey.shade600)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Alex Johnson", style: theme.textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  "alex.johnson@example.com",
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// ================= COMPONENTS =================
+  // COMPONENTS
   Widget _buildSectionHeader(String title) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(left: 20, bottom: 8),
       child: Text(
@@ -177,25 +204,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
+          color: theme.textTheme.bodyMedium?.color ?? Colors.grey.shade600,
         ),
       ),
     );
   }
 
   Widget _buildSettingsGroup(List<Widget> children) {
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        boxShadow: _isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
       ),
       child: Column(children: children),
     );
@@ -207,24 +238,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget? trailing,
     String? trailingText,
     Color iconColor = Colors.grey,
-    Color textColor = Colors.black87,
+    Color? textColor,
     VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(icon, color: iconColor, size: 24),
-      title: Text(title,
-          style: TextStyle(
-              fontSize: 16, color: textColor, fontWeight: FontWeight.w500)),
+      leading: Icon(
+        icon,
+        color: iconColor == Colors.grey ? theme.iconTheme.color : iconColor,
+        size: 24,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          color: textColor ?? theme.textTheme.bodyLarge?.color,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       trailing: trailing ??
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (trailingText != null)
-                Text(trailingText,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                Text(
+                  trailingText,
+                  style: TextStyle(
+                    color: theme.textTheme.bodyMedium?.color ?? Colors.grey.shade500,
+                    fontSize: 14,
+                  ),
+                ),
               if (trailingText != null) const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+              Icon(
+                Icons.chevron_right,
+                color: theme.textTheme.bodyMedium?.color ?? Colors.grey.shade400,
+                size: 20,
+              ),
             ],
           ),
       onTap: onTap,
@@ -232,41 +283,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDivider() {
+    final theme = Theme.of(context);
+
     return Divider(
-      color: Colors.grey.shade200,
+      color: theme.dividerColor,
       height: 1,
-      indent: 60, // Indent to align with text, not icon
+      indent: 60,
       endIndent: 20,
     );
   }
 
-  /// ================= INTERACTIONS =================
+  // INTERACTIONS
 
   void _editProfile() {
-    final nameController = TextEditingController(text: userName);
-    final emailController = TextEditingController(text: email);
+    final nameController = TextEditingController(text: "Alex Johnson");
+    final emailController = TextEditingController(text: "alex.johnson@example.com");
+    final theme = Theme.of(context);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Edit Profile"),
+        title: Text("Edit Profile", style: theme.textTheme.titleLarge),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Name")),
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email")),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Name"),
+            ),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 99, 235, 104)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5CC6A9)),
             onPressed: () {
-              setState(() {
-                userName = nameController.text;
-                email = emailController.text;
-              });
+              setState(() {});
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -276,45 +337,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _switchAccount() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Switch Account"),
-        content: const Text("Do you want to switch to a different account?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 99, 235, 104)),
-            onPressed: () {
-              _showSnack("Switched to another account");
-              Navigator.pop(context);
-            },
-            child: const Text("Switch"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _linkDevice() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Link a Device"),
+        title: Text("Link a Device", style: Theme.of(context).textTheme.titleLarge),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.watch, color: Color.fromARGB(255, 99, 235, 104)),
-              title: const Text("Smart Watch"),
-              onTap: () {
-                _showSnack("Smart Watch linked successfully");
-                Navigator.pop(context);
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.bluetooth, color: Colors.blue),
               title: const Text("Bluetooth Device"),
@@ -323,18 +355,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(context);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.lock, color: Colors.orange),
-              title: const Text("Safe Bundle"),
-              onTap: () {
-                _showSnack("Safe Bundle linked successfully");
-                Navigator.pop(context);
-              },
-            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
         ],
       ),
     );
@@ -343,9 +370,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _chooseFontSize() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => Column(
         mainAxisSize: MainAxisSize.min,
@@ -360,11 +387,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _fontOption(String label, double scale) {
     return ListTile(
-      title: Text(label, textAlign: TextAlign.center),
+      title: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
       onTap: () {
-        setState(() => fontLabel = label);
+        SettingsProvider.setFontScale(scale);
         Navigator.pop(context);
-        // widget.onFontChanged(scale); // Removed dependency
       },
     );
   }
@@ -372,16 +402,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _chooseAppIcon() {
     showModalBottomSheet(
       context: context,
-       backgroundColor: Colors.white,
-       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _iconOption("Default"),
-          _iconOption("Green Zen"),
-          _iconOption("Minimal"),
+          _iconOption("Green"),
+          _iconOption("Dark"),
         ],
       ),
     );
@@ -389,9 +419,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _iconOption(String label) {
     return ListTile(
-      title: Text(label, textAlign: TextAlign.center),
+      title: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
       onTap: () {
-        setState(() => selectedIcon = label);
+        SettingsProvider.setAppIcon(label);
         Navigator.pop(context);
       },
     );
@@ -407,20 +441,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text("Sign Out", style: Theme.of(context).textTheme.titleLarge),
+        content: Text(
+          "Are you sure you want to sign out?",
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _showSnack("User Signed Out");
-              // Add actual logout logic here (e.g., Navigator.pushReplacementNamed('/login'))
             },
-            child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            child: const Text("Sign Out", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
