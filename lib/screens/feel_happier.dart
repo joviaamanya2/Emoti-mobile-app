@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'library.dart'; // your existing library screen
 
 void main() {
   runApp(const MyApp());
@@ -63,7 +64,6 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
       backgroundColor: const Color(0xFFFAFAFA),
       body: Stack(
         children: [
-          // Header with nature-inspired gradient
           Positioned(
             top: 0,
             left: 0,
@@ -81,7 +81,7 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
                     const Color(0xFF43A047).withOpacity(0.9),
                   ],
                 ),
-                image:  DecorationImage(
+                image: DecorationImage(
                   image: NetworkImage(
                     'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80',
                   ),
@@ -174,18 +174,15 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
                               color: Colors.white70,
                               height: 1.5,
                               fontWeight: FontWeight.w400)),
-                      // Increased bottom spacing so text isn't blocked by the lower card
-                      const SizedBox(height: 48), 
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-
-          // Content cards
           Positioned(
-            top: 280, // Adjusted overlap point
+            top: 280,
             left: 0,
             right: 0,
             bottom: 0,
@@ -267,8 +264,7 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
                   icon: Icon(Icons.chat_bubble_outline_rounded, size: 28),
                   label: 'Connect'),
               BottomNavigationBarItem(
-                  icon:
-                      Icon(Icons.add_circle_outline_rounded, size: 28),
+                  icon: Icon(Icons.add_circle_outline_rounded, size: 28),
                   label: 'AK'),
               BottomNavigationBarItem(
                   icon: Icon(Icons.person_outline_rounded, size: 28),
@@ -280,7 +276,6 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
     );
   }
 
-  // Normal Card without checkmarks
   Widget _buildActionCard(MoodAction action) {
     return GestureDetector(
       onTap: () {
@@ -297,8 +292,7 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
         } else if (action.title == 'Gratitude Journal') {
           Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const LibraryScreen()));
+              MaterialPageRoute(builder: (_) => const LibraryScreen()));
         }
       },
       child: Container(
@@ -356,130 +350,6 @@ class _FeelHappierScreenState extends State<FeelHappierScreen> {
   }
 }
 
-// ========================= LIBRARY SCREEN (Gratitude Journal) =========================
-class LibraryScreen extends StatelessWidget {
-  const LibraryScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF57C00),
-        title: const Text("Gratitude Journal",
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 18)),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 22),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Write 3 things you're grateful for today",
-                style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF374151),
-                    fontWeight: FontWeight.w500)),
-            const SizedBox(height: 24),
-            _buildEntryField("1.", "I'm grateful for..."),
-            const SizedBox(height: 16),
-            _buildEntryField("2.", "I'm grateful for..."),
-            const SizedBox(height: 16),
-            _buildEntryField("3.", "I'm grateful for..."),
-            const Spacer(),
-            GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar( SnackBar(
-                  content: Text("Journal saved! 📝",
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  backgroundColor: Color(0xFFF57C00),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ));
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF57C00),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                        color: const Color(0xFFF57C00).withOpacity(0.3),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6))
-                  ],
-                ),
-                child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.save_rounded, color: Colors.white, size: 24),
-                      SizedBox(width: 12),
-                      Text("Save Entry",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700)),
-                    ]),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEntryField(String num, String hint) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 16, right: 12),
-            child: Text(num,
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFF57C00))),
-          ),
-          Expanded(
-            child: TextField(
-              maxLines: 2,
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(
-                    color: Color(0xFF9CA3AF), fontSize: 15),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ========================= NATURE BREAK SCREEN =========================
 class NatureBreakScreen extends StatelessWidget {
   const NatureBreakScreen({super.key});
@@ -523,7 +393,6 @@ class NatureBreakScreen extends StatelessWidget {
                     color: Color(0xFF6B7280),
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 18),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),

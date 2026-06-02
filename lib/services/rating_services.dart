@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'database_service.dart';
+import 'api_service.dart';
 
 
 class RatingService {
-  // ── XAMPP Base URL (Ratings, Testimonials, Stats) ──
+  // ── XAMPP Base URL (Ratings, Stats — not yet migrated) ──
   static const String _baseUrl = "http://10.0.2.2/emoti_api";
   
   // ── Laravel Base URL (Storybooks) ──
-  static const String _laravelBaseUrl = "http://10.0.2.2:8001/api";
+  static const String _laravelBaseUrl = "http://127.0.0.1:8001/api";
 
-  // ── SAVE SESSION RATING ──
+  // ── SAVE SESSION RATING (still on XAMPP) ──
   static Future<bool> submitRating({
     required String userId,
     required String sessionType,
@@ -43,7 +44,9 @@ class RatingService {
     }
   }
 
-  // ── SAVE TESTIMONIAL ──
+  // ══════════════════════════════════════════════════════
+  // ── SAVE TESTIMONIAL  ✅ NOW ON LARAVEL ──
+  // ══════════════════════════════════════════════════════
   static Future<bool> submitTestimonial({
     required String userId,
     required String userName,
@@ -56,27 +59,28 @@ class RatingService {
     required String displayNameType,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse("$_baseUrl/save_testimonial.php"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "user_id": userId,
-          "user_name": userName,
-          "session_type": sessionType,
-          "what_worked": whatWorked,
-          "description": description,
-          "star_rating": starRating,
-          "mood_when_it_worked": moodWhenItWorked,
-          "consent_for_public": consentForPublic ? 1 : 0,
-          "display_name_type": displayNameType,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final moodEmojis = {
+        'stressed': '😰',
+        'anxious': '😟',
+        'sad': '😢',
+        'lonely': '😔',
+        'neutral': '😐',
+        'calm': '😌',
+        'happy': '😊',
+        'energized': '⚡',
+      };
 
-      final data = jsonDecode(response.body);
-      if (data["success"] == true) {
-        // Also cache locally so the dashboard can refresh immediately.
+      final emoji = moodEmojis[moodWhenItWorked.toLowerCase()] ?? '😊';
+
+      final success = await ApiService().saveTestimonial(
+        mood: moodWhenItWorked,
+        emoji: emoji,
+        text: description.isNotEmpty ? '$whatWorked. $description' : whatWorked,
+      );
+
+      if (success) {
+        // Cache locally for instant UI refresh
         try {
-          // Determine the display name based on consent preferences
           String cachedName = "Anonymous";
           if (consentForPublic && userName.isNotEmpty) {
             if (displayNameType == "full_name") {
@@ -96,62 +100,69 @@ class RatingService {
               "mood_when_it_worked": moodWhenItWorked,
               "consent_for_public": consentForPublic ? 1 : 0,
               "display_name_type": displayNameType,
-              // Legacy fields used by the dashboard card
               "name": cachedName,
               "content": description,
               "mood": moodWhenItWorked,
               "whatWorked": whatWorked,
               "rating": starRating,
               "daysAgo": 0,
+              "helpful_count": 0,
             },
           ];
           await DatabaseService.saveTestimonialsLocally(cached.cast<Map<String, dynamic>>());
-        } catch (_) {
-          // ignore local caching failures
-        }
+        } catch (_) {}
 
         return true;
-      } else {
-        print("❌ Server error: ${data["error"]}");
-        return false;
       }
+
+      return false;
     } catch (e) {
       print("❌ Failed to save testimonial: $e");
       return false;
     }
   }
 
-  // ── GET TESTIMONIALS ──
-  static Future<List<Map<String, dynamic>>> getTestimonials({
+  // ══════════════════════════════════════════════════════
+  // ── GET TESTIMONIALS  ✅ NOW ON LARAVEL ──
+  // ══════════════════════════════════════════════════════
+    static Future<List<Map<String, dynamic>>> getTestimonials({
     int limit = 10,
     String? sessionType,
     String? mood,
   }) async {
     try {
-      String url = "$_baseUrl/get_testimonials.php?limit=$limit";
-      if (sessionType != null && sessionType.isNotEmpty) {
-        url += "&session_type=$sessionType";
-      }
-      if (mood != null && mood.isNotEmpty) {
-        url += "&mood=$mood";
-      }
+      final testimonials = await ApiService().fetchTestimonials(
+        moodFilter: mood,
+      );
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-      ).timeout(const Duration(seconds: 10));
-
-      final data = jsonDecode(response.body);
-      if (data["success"] == true) {
-        return List<Map<String, dynamic>>.from(data["data"]);
-      }
+      return testimonials.map((t) {
+        return {
+          'id': t['id'],
+          'user_name': t['name'] ?? 'Anonymous',
+          'avatar': t['avatar'] ?? '',
+          'mood_when_it_worked': t['mood'] ?? 'Great',
+          'what_worked': t['whatWorked'] ?? '',
+          'description': t['content'] ?? '',
+          'session_type': t['whatWorked'] ?? 'General',
+          'star_rating': t['rating'] ?? 5,
+          'daysAgo': t['daysAgo'] ?? 0,
+          'helpful_count': 0,
+          'display_name_type': 'anonymous',
+          'name': t['name'] ?? 'Anonymous',
+          'content': t['content'] ?? '',
+          'mood': t['mood'] ?? 'Great',
+          'whatWorked': t['whatWorked'] ?? '',
+          'rating': t['rating'] ?? 5,
+        };
+      }).toList();
     } catch (e) {
       print("❌ Failed to get testimonials: $e");
     }
+
     return [];
   }
 
-  // ── MARK AS HELPFUL ──
+  // ── MARK AS HELPFUL (still on XAMPP) ──
   static Future<bool> markHelpful(int testimonialId) async {
     try {
       final response = await http.post(
@@ -190,12 +201,10 @@ class RatingService {
 
       final data = jsonDecode(response.body);
       
-      // Laravel wraps paginated/data responses in a "data" key
       if (data["data"] != null) {
         return List<Map<String, dynamic>>.from(data["data"]);
       }
       
-      // Fallback if Laravel returns raw array
       if (data is List) {
         return List<Map<String, dynamic>>.from(data);
       }
@@ -207,7 +216,7 @@ class RatingService {
     }
   }
 
-  // ── GET SESSION STATS ──
+  // ── GET SESSION STATS (still on XAMPP) ──
   static Future<Map<String, dynamic>> getSessionStats(String sessionType) async {
     try {
       final response = await http.get(

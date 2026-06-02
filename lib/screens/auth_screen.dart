@@ -55,12 +55,6 @@ class _AuthScreenState extends State<AuthScreen>
       "icon": Icons.psychology_rounded,
       "description": "Help & guide others",
     },
-    {
-      "value": "admin",
-      "label": "Admin",
-      "icon": Icons.admin_panel_settings_rounded,
-      "description": "Full system control",
-    },
   ];
 
   final String laravelBaseUrl = 'http://127.0.0.1:8001';
@@ -233,19 +227,9 @@ class _AuthScreenState extends State<AuthScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Emoti",
-                          style: TextStyle(
-                              fontSize: 42, fontWeight: FontWeight.w900)),
-                      IconButton(
-                        icon: Icon(Icons.admin_panel_settings,
-                            color: kPrimaryGreen),
-                        onPressed: _openLaravelLogin,
-                      ),
-                    ],
-                  ),
+                  const Text("Emoti",
+                      style: TextStyle(
+                          fontSize: 42, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 20),
                   _buildTabs(),
                 ],
@@ -509,8 +493,6 @@ class _AuthScreenState extends State<AuthScreen>
 
   Color _getRoleColor(String role) {
     switch (role) {
-      case 'admin':
-        return const Color(0xFFE53935);
       case 'counselor':
         return const Color(0xFF7C4DFF);
       default:

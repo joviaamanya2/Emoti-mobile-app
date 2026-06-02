@@ -306,6 +306,8 @@ class _CounselorsScreenState extends State<CounselorsScreen> {
       };
 
       try {
+        print('Allocated counselor: ${allocatedCounselor?.name}');
+        print('Allocated counselor ID: ${allocatedCounselor?.id}');
         final counselorId = allocatedCounselor?.id;
         final success = await ApiService().bookAppointment(
           counselorId: counselorId != null ? int.tryParse(counselorId.toString()) ?? 0 : 0,

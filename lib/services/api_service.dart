@@ -220,7 +220,7 @@ class ApiService {
   }
 
   // ==============================
-  // BOOK APPOINTMENT
+  // BOOK APPOINTMENT  ✅ FIXED
   // ==============================
   Future<bool> bookAppointment({
     required int counselorId,
@@ -244,7 +244,8 @@ class ApiService {
       // ✅ REQUIRED FIELDS
       body['counselor_id'] = counselorId;
       body['service'] = service;
-      body['patient_phone'] = contactNumber;
+      body['patient_phone'] = contactNumber.toString();
+      body['contact_number'] = contactNumber.toString(); // ✅ THIS WAS MISSING
       body['appointment_date'] = appointmentDate;
       body['appointment_time'] = appointmentTime;
 
@@ -300,10 +301,18 @@ class ApiService {
         throw Exception(errorMsg);
       }
 
+      // ✅ HANDLE 500 ERRORS
+      if (res.statusCode == 500) {
+        final decoded = _safeJson(res.body);
+        throw Exception(
+          decoded?['message'] ?? 'Server error. Please try again.',
+        );
+      }
+
       return false;
     } catch (e) {
       print("❌ BOOK APPOINTMENT ERROR: $e");
-      return false;
+      rethrow;
     }
   }
 
@@ -338,60 +347,84 @@ class ApiService {
   }
 
   // ==============================
-  // TESTIMONIALS
-  // ==============================
-  Future<List<Map<String, dynamic>>> fetchTestimonials({
-    String? moodFilter,
-  }) async {
-    try {
-      final token = await _getToken();
+// SAVE TESTIMONIAL  ✅ FIXED
+// ==============================
+Future<bool> saveTestimonial({
+  required String mood,
+  required String emoji,
+  String? text,
+}) async {
+  try {
+    final token = await _getToken();
 
-      if (token == null) {
-        return [];
-      }
-
-      final query = <String, String>{};
-
-      if (moodFilter != null &&
-          moodFilter.isNotEmpty) {
-        query['mood'] = moodFilter;
-      }
-
-      final uri = Uri.parse(
-        '$baseUrl/testimonials',
-      ).replace(
-        queryParameters: query,
-      );
-
-      final res = await http.get(
-        uri,
-        headers: await _authHeaders(),
-      );
-
-      if (res.statusCode < 200 ||
-          res.statusCode >= 300) {
-        return [];
-      }
-
-      final decoded = _safeJson(res.body);
-
-      if (decoded is Map<String, dynamic>) {
-        final list =
-            decoded['data'] ??
-            decoded['testimonials'];
-
-        if (list is List) {
-          return List<Map<String, dynamic>>.from(list);
-        }
-      }
-
-      if (decoded is List) {
-        return List<Map<String, dynamic>>.from(decoded);
-      }
-
-      return [];
-    } catch (e) {
-      return [];
+    if (token == null) {
+      throw Exception('Not logged in');
     }
+
+    final res = await http.post(
+      Uri.parse('$baseUrl/testimonials'),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        'mood': mood,
+        'emoji': emoji,
+        if (text != null && text.isNotEmpty) 'text': text,
+        'star_rating': 5,
+      }),
+    ).timeout(const Duration(seconds: 15));
+
+    print("⬅️ SAVE TESTIMONIAL STATUS: ${res.statusCode}");
+    print("⬅️ SAVE TESTIMONIAL BODY: ${res.body}");
+
+    if (res.statusCode == 201) {
+      return true;
+    }
+
+    final decoded = _safeJson(res.body);
+    throw Exception(decoded?['message'] ?? 'Failed to save testimonial');
+  } catch (e) {
+    print("❌ SAVE TESTIMONIAL ERROR: $e");
+    rethrow;
   }
+}
+
+// ==============================
+// FETCH TESTIMONIALS  ✅ FIXED
+// ==============================
+Future<List<Map<String, dynamic>>> fetchTestimonials({
+  String? moodFilter,
+}) async {
+  try {
+    String url = '$baseUrl/testimonials';
+    if (moodFilter != null && moodFilter.isNotEmpty) {
+      url += '?mood=$moodFilter';
+    }
+
+    final res = await http.get(
+      Uri.parse(url),
+      headers: await _authHeaders(),
+    ).timeout(const Duration(seconds: 15));
+
+    print("⬅️ FETCH TESTIMONIALS STATUS: ${res.statusCode}");
+
+    if (res.statusCode != 200) return [];
+
+    final decoded = _safeJson(res.body);
+
+    if (decoded is Map<String, dynamic>) {
+      final list = decoded['data'];
+      if (list is List) {
+        return List<Map<String, dynamic>>.from(list);
+      }
+    }
+
+    if (decoded is List) {
+      return List<Map<String, dynamic>>.from(decoded);
+    }
+
+    return [];
+  } catch (e) {
+    print("❌ FETCH TESTIMONIALS ERROR: $e");
+    return [];
+  }
+}
 }

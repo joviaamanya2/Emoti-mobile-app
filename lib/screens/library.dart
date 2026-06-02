@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/fitness_screen.dart';
 import 'videos.dart';
 import '../screens/games_screen.dart';
@@ -38,6 +40,8 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   int _selectedCategoryIndex = 0;
   final List<String> _categories = ['All', 'Articles', 'Exercises', 'Journal'];
+  
+  static const String _journalsKey = 'saved_journals';
 
   final List<ArticleItem> _articles = [
     ArticleItem(
@@ -105,6 +109,43 @@ class _LibraryScreenState extends State<LibraryScreen> {
   ];
 
   List<JournalEntry> journals = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadJournals();
+  }
+
+  // Load journals from SharedPreferences
+  Future<void> _loadJournals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? journalsJson = prefs.getString(_journalsKey);
+      
+      if (journalsJson != null) {
+        final List<dynamic> decoded = jsonDecode(journalsJson);
+        setState(() {
+          journals = decoded.map((item) => JournalEntry.fromJson(item)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading journals: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Save journals to SharedPreferences
+  Future<void> _saveJournals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String encoded = jsonEncode(journals.map((j) => j.toJson()).toList());
+      await prefs.setString(_journalsKey, encoded);
+    } catch (e) {
+      debugPrint('Error saving journals: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,18 +166,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            _buildCategoryTabs(),
-            const SizedBox(height: 24),
-            Expanded(child: _buildContentList()),
-          ],
-        ),
-      ),
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF5CC6A9)))
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  _buildCategoryTabs(),
+                  const SizedBox(height: 24),
+                  Expanded(child: _buildContentList()),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final newJournal = await Navigator.push(
@@ -145,6 +188,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           );
           if (newJournal != null && newJournal is JournalEntry) {
             setState(() => journals.add(newJournal));
+            await _saveJournals();
           }
         },
         icon: const Icon(Icons.create_rounded),
@@ -160,13 +204,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case 0: // ALL
         return ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 100), // Important padding for FAB
+          padding: const EdgeInsets.only(bottom: 100),
           children: [
-            // Articles Section
             const Text("Featured Articles",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
             const SizedBox(height: 12),
-            // Correctly building the list of widgets
             ..._articles.map((article) => Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: _buildArticleCard(article),
@@ -174,20 +216,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
             
             const SizedBox(height: 30),
             
-            // Exercises Section
             const Text("Exercises",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
             const SizedBox(height: 12),
             
-            // Grid wrapped in SizedBox to give it height within a ListView
             SizedBox(
-              height: 220, // Fixed height for the grid
+              height: 220,
               child: _buildExercisesGrid(),
             ),
 
             const SizedBox(height: 30),
 
-            // Journals Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
@@ -199,7 +238,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             const SizedBox(height: 12),
             
             if (journals.isNotEmpty) ...[
-               ...journals.map((journal) => Padding(
+               ...journals.reversed.take(3).map((journal) => Padding(
                      padding: const EdgeInsets.only(bottom: 16.0),
                      child: _journalCard(journal),
                    )),
@@ -216,7 +255,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case 1: // Articles
         return _buildArticlesList();
       case 2: // Exercises
-        return _buildExercisesList(); // Separated for scrollability
+        return _buildExercisesList();
       case 3: // Journal
         return _buildJournalsList();
       default:
@@ -267,14 +306,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  // Added separate method for Exercises Tab to handle full scrolling
   Widget _buildExercisesList() {
      return ListView(
        padding: const EdgeInsets.only(bottom: 100),
        children: [
           GridView.builder(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // Allow outer list to scroll
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: _exercises.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -373,8 +411,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _buildExercisesGrid() {
     return GridView.builder(
-      // Don't use shrinkWrap here if used in "All" tab with specific height, or it will collapse
-      // If standalone, use shrinkWrap true.
       physics: const BouncingScrollPhysics(),
       itemCount: _exercises.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -430,11 +466,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       );
     }
+    
+    // Sort journals by date (newest first)
+    final sortedJournals = List<JournalEntry>.from(journals.reversed);
+    
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 100),
-      itemCount: journals.length,
+      itemCount: sortedJournals.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, index) => _journalCard(journals[index]),
+      itemBuilder: (_, index) => _journalCard(sortedJournals[index]),
     );
   }
 
@@ -450,50 +490,128 @@ class _LibraryScreenState extends State<LibraryScreen> {
           children: [
             Row(
               children: [
-                Text(
-                  "${journal.date.day}/${journal.date.month}/${journal.date.year}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5CC6A9).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "${journal.date.day}/${journal.date.month}/${journal.date.year} ${_formatTime(journal.date)}",
+                    style: TextStyle(fontSize: 11, color: const Color(0xFF5CC6A9), fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: Icon(journal.favorite ? Icons.star : Icons.star_border, color: Colors.amber),
-                  onPressed: () => setState(() => journal.favorite = !journal.favorite),
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share, size: 20),
-                  onPressed: () => Share.share(journal.text),
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () async {
-                    final edited = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => JournalEditor(entry: journal)),
-                    );
-                    if (edited != null && edited is JournalEntry) {
-                      setState(() {
-                        final index = journals.indexOf(journal);
-                        if (index != -1) journals[index] = edited;
-                      });
-                    }
-                  },
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                  onPressed: () => setState(() => journals.remove(journal)),
-                  visualDensity: VisualDensity.compact,
-                ),
+                if (journal.favorite)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 14, color: Colors.amber.shade700),
+                        const SizedBox(width: 4),
+                        Text("Favorite", style: TextStyle(fontSize: 10, color: Colors.amber.shade700, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(journal.text, maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, height: 1.5)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _actionButton(Icons.star_border, "Favorite", journal.favorite ? Colors.amber : Colors.grey.shade500, () async {
+                  setState(() => journal.favorite = !journal.favorite);
+                  await _saveJournals();
+                }, isSelected: journal.favorite, selectedIcon: Icons.star),
+                const SizedBox(width: 8),
+                _actionButton(Icons.share, "Share", Colors.grey.shade500, () => Share.share(journal.text)),
+                const SizedBox(width: 8),
+                _actionButton(Icons.edit, "Edit", const Color(0xFF5CC6A9), () async {
+                  final edited = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => JournalEditor(entry: journal)),
+                  );
+                  if (edited != null && edited is JournalEntry) {
+                    setState(() {
+                      final index = journals.indexOf(journal);
+                      if (index != -1) journals[index] = edited;
+                    });
+                    await _saveJournals();
+                  } else if (edited == 'DELETE') {
+                    setState(() => journals.remove(journal));
+                    await _saveJournals();
+                  }
+                }),
+                const SizedBox(width: 8),
+                _actionButton(Icons.delete_outline, "Delete", Colors.red.shade400, () => _showDeleteDialog(journal), 
+                  isSelected: false, selectedIcon: Icons.delete_outline),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _actionButton(IconData icon, String tooltip, Color color, VoidCallback onTap, {bool isSelected = false, IconData? selectedIcon}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(isSelected ? (selectedIcon ?? icon) : icon, size: 18, color: color),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(JournalEntry journal) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Journal?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("This action cannot be undone. Are you sure you want to delete this journal entry?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => journals.remove(journal));
+              await _saveJournals();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Journal deleted"),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime date) {
+    String hour = date.hour.toString().padLeft(2, '0');
+    String minute = date.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
   }
 }
 
@@ -544,6 +662,27 @@ class JournalEntry {
   final DateTime date;
 
   JournalEntry({required this.text, this.favorite = false}) : date = DateTime.now();
+
+  // Constructor for loading from JSON (with specific date)
+  JournalEntry.withDate({required this.text, required this.date, this.favorite = false});
+
+  // Convert to JSON for storage
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'favorite': favorite,
+      'date': date.toIso8601String(),
+    };
+  }
+
+  // Create from JSON
+  factory JournalEntry.fromJson(Map<String, dynamic> json) {
+    return JournalEntry.withDate(
+      text: json['text'] ?? '',
+      date: DateTime.parse(json['date']),
+      favorite: json['favorite'] ?? false,
+    );
+  }
 }
 
 // --- ARTICLE DETAIL SCREEN ---
@@ -630,6 +769,7 @@ class JournalEditor extends StatefulWidget {
 
 class _JournalEditorState extends State<JournalEditor> {
   late TextEditingController _controller;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -645,26 +785,47 @@ class _JournalEditorState extends State<JournalEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.entry != null;
+    
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.entry == null ? "New Journal" : "Edit Journal"),
+        title: Text(isEditing ? "Edit Journal" : "New Journal"),
         backgroundColor: const Color(0xFF5CC6A9),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          if (widget.entry != null)
+          if (isEditing)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () {
-                Navigator.pop(context, 'DELETE');
-              },
-            )
+              tooltip: "Delete",
+              onPressed: () => _showDeleteConfirmDialog(),
+            ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            if (isEditing)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5CC6A9).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_calendar, color: const Color(0xFF5CC6A9), size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Last edited: ${widget.entry!.date.day}/${widget.entry!.date.month}/${widget.entry!.date.year}",
+                      style: TextStyle(color: const Color(0xFF5CC6A9), fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: TextField(
                 controller: _controller,
@@ -672,30 +833,100 @@ class _JournalEditorState extends State<JournalEditor> {
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
                 style: const TextStyle(fontSize: 16, height: 1.5),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: "Write your thoughts here...",
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   fillColor: Colors.white,
                   filled: true,
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF5CC6A9), width: 2),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  if (_controller.text.trim().isNotEmpty) {
-                    Navigator.pop(context, JournalEntry(text: _controller.text.trim(), favorite: widget.entry?.favorite ?? false));
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5CC6A9), padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text("Save Entry", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: _isSaving ? null : _saveEntry,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5CC6A9),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(isEditing ? Icons.check : Icons.save, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text(isEditing ? "Update Entry" : "Save Entry", 
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Journal?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context, 'DELETE'); // Return DELETE to previous screen
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveEntry() {
+    if (_controller.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please write something before saving"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    
+    // Simulate a small delay for better UX
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(
+        context,
+        JournalEntry.withDate(
+          text: _controller.text.trim(),
+          date: widget.entry?.date ?? DateTime.now(),
+          favorite: widget.entry?.favorite ?? false,
+        ),
+      );
+    });
   }
 }
