@@ -185,20 +185,15 @@ class _HomeContentState extends State<HomeContent> {
     setState(() => isTestimonialsLoading = true);
     
     try {
-      // Try to get testimonials from API
       final apiTestimonials = await ApiService().fetchTestimonials();
 
-
-      
       if (apiTestimonials.isNotEmpty) {
-        // Save to local storage for offline use
         await DatabaseService.saveTestimonialsLocally(apiTestimonials);
         setState(() {
           testimonials = apiTestimonials;
           isTestimonialsLoading = false;
         });
       } else {
-        // Try to get from local storage
         final localTestimonials = await DatabaseService.getLocalTestimonials();
         
         if (localTestimonials.isNotEmpty) {
@@ -207,7 +202,6 @@ class _HomeContentState extends State<HomeContent> {
             isTestimonialsLoading = false;
           });
         } else {
-          // Use default testimonials
           setState(() {
             testimonials = defaultTestimonials;
             isTestimonialsLoading = false;
@@ -217,7 +211,6 @@ class _HomeContentState extends State<HomeContent> {
     } catch (e) {
       print('Error loading testimonials: $e');
       
-      // Try to get from local storage as fallback
       final localTestimonials = await DatabaseService.getLocalTestimonials();
       
       if (localTestimonials.isNotEmpty) {
@@ -226,7 +219,6 @@ class _HomeContentState extends State<HomeContent> {
           isTestimonialsLoading = false;
         });
       } else {
-        // Use default testimonials
         setState(() {
           testimonials = defaultTestimonials;
           isTestimonialsLoading = false;
@@ -240,23 +232,19 @@ class _HomeContentState extends State<HomeContent> {
     setState(() => isTestimonialsLoading = true);
     
     try {
-      // Try to get testimonials from API with mood filter
       final apiTestimonials = await ApiService().fetchTestimonials(moodFilter: mood);
       
       if (apiTestimonials.isNotEmpty) {
-        // Save to local storage for offline use
         await DatabaseService.saveTestimonialsLocally(apiTestimonials);
         setState(() {
           testimonials = apiTestimonials;
           isTestimonialsLoading = false;
         });
       } else {
-        // If no mood-specific testimonials, load all testimonials
         await _loadTestimonials();
       }
     } catch (e) {
       print('Error loading testimonials by mood: $e');
-      // Fall back to all testimonials
       await _loadTestimonials();
     }
   }
@@ -265,25 +253,19 @@ class _HomeContentState extends State<HomeContent> {
     setState(() => isMoodSending = true);
     
     try {
-      // Try to send to API
-final success = await ApiService().sendMood(label, emoji);
+      final success = await ApiService().sendMood(label, emoji);
       
       if (success) {
         print("Mood Sent to API: $label ($emoji)");
-        // Load testimonials for this mood
         await _loadTestimonialsByMood(label);
       } else {
         print("Failed to send mood to API, saving locally");
-        // Save locally as backup
         await DatabaseService.saveMoodLocally(label, emoji);
-        // Load testimonials from local storage
         await _loadTestimonials();
       }
     } catch (e) {
       print("Error sending mood: $e");
-      // Save locally as backup
       await DatabaseService.saveMoodLocally(label, emoji);
-      // Load testimonials from local storage
       await _loadTestimonials();
     } finally {
       setState(() => isMoodSending = false);
@@ -318,7 +300,6 @@ final success = await ApiService().sendMood(label, emoji);
     if (testimonials.isEmpty) return [];
     
     final currentMood = emojiLabels[selectedEmojiIndex];
-    // Prioritize testimonials matching current mood, then show others
     final matching = testimonials.where((t) => t['mood'] == currentMood).toList();
     final others = testimonials.where((t) => t['mood'] != currentMood).toList();
     return [...matching, ...others].take(4).toList();
@@ -342,7 +323,12 @@ final success = await ApiService().sendMood(label, emoji);
     setState(() => _currentIndex = index);
     switch (index) {
       case 0:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthScreen()));
+        // ✅ FIX: Pass the required userName parameter and remove 'const'
+        Navigator.pushAndRemoveUntil(
+          context, 
+          MaterialPageRoute(builder: (_) => GenderSelectionScreen(userName: widget.userName)), 
+          (route) => false
+        );
         break;
       case 1:
         Navigator.push(context, MaterialPageRoute(builder: (_) => const RecommendationsScreen()));
@@ -378,7 +364,12 @@ final success = await ApiService().sendMood(label, emoji);
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    // ✅ FIX: Navigate to HomeScreen instead of popping back to Splash
+                    onTap: () => Navigator.pushAndRemoveUntil(
+                      context, 
+                      MaterialPageRoute(builder: (context) => GenderSelectionScreen(userName: widget.userName)), 
+                      (route) => false
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -391,7 +382,6 @@ final success = await ApiService().sendMood(label, emoji);
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
                     child: Hero(
                       tag: 'profile',
                       child: Container(
@@ -474,7 +464,6 @@ final success = await ApiService().sendMood(label, emoji);
                               );
                             }),
                           ),
-                          // Show loading indicator when sending mood
                           if (isMoodSending) ...[
                             const SizedBox(height: 16),
                             const Center(
@@ -641,7 +630,6 @@ final success = await ApiService().sendMood(label, emoji);
                     const SizedBox(height: 8),
                     Text("Real stories from people who felt like you", style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 20),
-                    // Show loading indicator when fetching testimonials
                     if (isTestimonialsLoading)
                       const Center(
                         child: Padding(
@@ -774,7 +762,29 @@ final success = await ApiService().sendMood(label, emoji);
 
   // ================= TESTIMONIAL CARD WIDGET =================
   Widget _buildTestimonialCard(Map<String, dynamic> testimonial) {
-    final isMatchingMood = testimonial['mood'] == emojiLabels[selectedEmojiIndex];
+    // ✅ ULTRA-SAFE PARSING: Prevents ALL Null subtype crashes from API
+    final String moodStr = (testimonial['mood'] ?? '').toString();
+    final bool isMatchingMood = moodStr == emojiLabels[selectedEmojiIndex];
+
+    final String avatar = (testimonial['avatar'] ).toString();
+    final String name = (testimonial['name'] ?? testimonial['user_name'] ?? 'Anonymous').toString();
+    
+    int daysAgo = 0;
+    if (testimonial['daysAgo'] != null) {
+      daysAgo = (testimonial['daysAgo'] as num).toInt();
+    } else if (testimonial['days_ago'] != null) {
+      daysAgo = (testimonial['days_ago'] as num).toInt();
+    }
+
+    int rating = 5;
+    if (testimonial['rating'] != null) {
+      rating = (testimonial['rating'] as num).toInt();
+    } else if (testimonial['star_rating'] != null) {
+      rating = (testimonial['star_rating'] as num).toInt();
+    }
+
+    final String content = (testimonial['content'] ?? testimonial['description'] ?? '').toString();
+    final String whatWorked = (testimonial['whatWorked'] ?? testimonial['what_worked'] ?? '').toString();
 
     return Container(
       width: 300,
@@ -802,7 +812,7 @@ final success = await ApiService().sendMood(label, emoji);
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: NetworkImage(testimonial['avatar']),
+                  backgroundImage: NetworkImage(avatar),
                   onBackgroundImageError: (_, __) => const Icon(Icons.person, color: Colors.grey),
                 ),
                 const SizedBox(width: 12),
@@ -810,17 +820,17 @@ final success = await ApiService().sendMood(label, emoji);
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(testimonial['name'], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF2C3E50))),
-                      Text(_getTimeAgo(testimonial['daysAgo']), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey.shade400)),
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF2C3E50))),
+                      Text(_getTimeAgo(daysAgo), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey.shade400)),
                     ],
                   ),
                 ),
                 // Star rating
                 Row(
                   children: List.generate(5, (i) => Icon(
-                    i < testimonial['rating'] ? Icons.star_rounded : Icons.star_outline_rounded,
+                    i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
                     size: 14,
-                    color: i < testimonial['rating'] ? const Color(0xFFFFD700) : Colors.grey.shade300,
+                    color: i < rating ? const Color(0xFFFFD700) : Colors.grey.shade300,
                   )),
                 ),
               ],
@@ -828,19 +838,20 @@ final success = await ApiService().sendMood(label, emoji);
             const SizedBox(height: 14),
 
             // Mood tag
+            if (moodStr.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: _getMoodColor(testimonial['mood']).withOpacity(0.1),
+                color: _getMoodColor(moodStr).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _getMoodColor(testimonial['mood']).withOpacity(0.3)),
+                border: Border.all(color: _getMoodColor(moodStr).withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_getMoodEmoji(testimonial['mood']), style: const TextStyle(fontSize: 12)),
+                  Text(_getMoodEmoji(moodStr), style: const TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
-                  Text('Felt ${testimonial['mood']}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _getMoodColor(testimonial['mood']))),
+                  Text('Felt $moodStr', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _getMoodColor(moodStr))),
                 ],
               ),
             ),
@@ -849,7 +860,7 @@ final success = await ApiService().sendMood(label, emoji);
             // Content
             Expanded(
               child: Text(
-                '"${testimonial['content']}"',
+                '"$content"',
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -864,6 +875,7 @@ final success = await ApiService().sendMood(label, emoji);
             const SizedBox(height: 14),
 
             // What worked
+            if (whatWorked.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -876,7 +888,7 @@ final success = await ApiService().sendMood(label, emoji);
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      testimonial['whatWorked'],
+                      whatWorked,
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kDarkGreen),
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -23,7 +23,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
-  final ApiService _authService = ApiService();
+  final AuthService _authService = AuthService();
 
   final String supportEmail = "support@emoti.com";
   final String supportPhone = "+1 234 567 8900";

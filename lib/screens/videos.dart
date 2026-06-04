@@ -285,7 +285,7 @@ class _VideosScreenState extends State<VideosScreen> {
   Color getCategoryColor(String cat) {
     switch (cat) {
       case "Meditation":
-        return const Color(0xFF7C4DFF);
+        return const Color.fromARGB(255, 77, 255, 101);
       case "Yoga":
         return const Color(0xFF00BFA5);
       case "Stretching":
@@ -552,7 +552,7 @@ class _VideosScreenState extends State<VideosScreen> {
       case "Stressed":
         return const Color(0xFFFF7043);
       case "Motivated":
-        return const Color(0xFFAB47BC);
+        return const Color.fromARGB(255, 71, 188, 87);
       case "Bored":
         return const Color(0xFF9E9D24);
       case "Anxious":

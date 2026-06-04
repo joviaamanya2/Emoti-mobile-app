@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import '../screens/home_screen.dart';
 import 'forgot_password_screen.dart';
-
+import './home_screen.dart';
 import './home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _AuthScreenState extends State<AuthScreen>
   bool isLoginPasswordVisible = false;
   bool isSignupPasswordVisible = false;
 
-  final ApiService _authService = ApiService();
+  final AuthService _authService = AuthService();
 
   final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);
 
@@ -116,6 +116,7 @@ class _AuthScreenState extends State<AuthScreen>
       final result = await _authService.login({
         "email": loginEmailController.text.trim(),
         "password": loginPasswordController.text,
+        
       });
 
       final message = result['message'];

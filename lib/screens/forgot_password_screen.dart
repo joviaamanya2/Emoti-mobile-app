@@ -12,7 +12,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController emailController = TextEditingController();
-  final ApiService _authService = ApiService();
+  final AuthService _authService = AuthService();
 
   bool loading = false;
   final Color kPrimaryGreen = const Color.fromARGB(255, 99, 235, 104);

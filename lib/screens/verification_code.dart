@@ -20,7 +20,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen>
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final ApiService _authService = ApiService();
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
   bool _isVerifying = false;
   bool _canResend = false;
